@@ -1,0 +1,7 @@
+OCaml Lwt Interop
+
+Copyright The OCaml Lwt Interop contributors
+
+This project bundles parts of async-executor, which is available under an
+Apache License, Version 2.0. For details see src/local_executor.rs.
+
