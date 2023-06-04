@@ -1,0 +1,5 @@
+(executable
+ (name test)
+ (libraries unix lwt.unix rust-async)
+ (preprocess
+  (pps lwt_ppx)))
