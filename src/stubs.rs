@@ -1,6 +1,9 @@
+use std::borrow::Borrow;
+
 use crate::local_executor;
 use crate::ptr::CamlRef;
 use crate::util::ensure_rooted_value;
+use ocaml::interop::{DynBox, OCaml};
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                       Promise                             //////////
@@ -44,11 +47,20 @@ pub fn lwti_executor_create(notify_id: isize) -> CamlRef<Executor> {
     executor.into()
 }
 
+/* #1 */
 #[ocaml::func]
 #[ocaml::sig("executor -> unit")]
-pub fn lwti_executor_run_pending(executor: CamlRef<Executor>) {
-    while executor.try_tick() {}
+pub fn lwti_executor_run_pending(executor: OCaml<DynBox<Executor>>) {
+    while Borrow::<Executor>::borrow(&executor).try_tick() {}
 }
+
+/* #2 */
+// #[ocaml::func]
+// #[ocaml::sig("executor -> unit")]
+// pub fn lwti_executor_run_pending(executor: OCaml<DynBox<Executor>>) {
+//     let executor: &Executor = executor.borrow();
+//     while executor.try_tick() {}
+// }
 
 #[ocaml::func]
 #[ocaml::sig("executor -> (int -> promise) -> unit")]
