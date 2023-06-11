@@ -7,24 +7,24 @@ use crate::util::ensure_rooted_value;
 ///////////////////////////////////////////////////////////////////////////////
 
 #[ocaml::sig]
-type Promise = crate::promise::Promise;
+type Promise<T> = crate::promise::Promise<T>;
 
 #[ocaml::func]
 #[ocaml::sig("unit -> promise")]
-pub fn lwti_promise_create() -> CamlRef<Promise> {
-    Promise::new().into()
+pub fn lwti_promise_create() -> CamlRef<Promise<()>> {
+    Promise::<()>::new().into()
 }
 
 #[ocaml::func]
 #[ocaml::sig("promise -> 'a -> unit")]
-pub fn lwti_promise_resolve(promise: CamlRef<Promise>, value: ocaml::Value) {
+pub fn lwti_promise_resolve(promise: CamlRef<Promise<()>>, value: ocaml::Value) {
     let value = ensure_rooted_value(value);
     promise.resolve(value)
 }
 
 #[ocaml::func]
 #[ocaml::sig("promise -> exn -> unit")]
-pub fn lwti_promise_reject(promise: CamlRef<Promise>, exn: ocaml::Value) {
+pub fn lwti_promise_reject(promise: CamlRef<Promise<()>>, exn: ocaml::Value) {
     let exn = ensure_rooted_value(exn);
     promise.reject(exn)
 }
@@ -58,7 +58,7 @@ pub fn lwti_executor_test(executor: CamlRef<Executor>, f: ocaml::Value) {
     let task = executor.spawn(async move {
         let mut page_nb = 0;
         let gc = unsafe { ocaml::interop::OCamlRuntime::recover_handle() };
-        let f_callable = ocaml::function!(f, (n: ocaml::Int) -> CamlRef<Promise>);
+        let f_callable = ocaml::function!(f, (n: ocaml::Int) -> CamlRef<Promise<()>>);
         loop {
             f_callable(&gc, &page_nb).unwrap().clone().await.unwrap();
             page_nb = page_nb + 1;

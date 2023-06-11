@@ -1,5 +1,6 @@
 use crate::borrow_mut;
 use std::cell::RefCell;
+use std::marker::PhantomData;
 use std::rc::Rc;
 use std::{future::Future, pin::Pin, task::Context, task::Poll, task::Waker};
 
@@ -14,17 +15,26 @@ struct PromiseSharedState {
 }
 
 #[derive(Clone, Debug)]
-pub struct Promise {
+pub struct Promise<T>
+where
+    T: ocaml::FromValue,
+{
     shared_state: Rc<RefCell<PromiseSharedState>>,
+    marker: PhantomData<T>,
 }
 
-impl Future for Promise {
-    type Output = Result<ocaml::Value, ocaml::Error>; // Specify the output type of your future
+impl<T> Future for Promise<T>
+where
+    T: ocaml::FromValue,
+{
+    type Output = Result<T, ocaml::Error>; // Specify the output type of your future
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut shared_state = borrow_mut!(self.shared_state);
         match shared_state.value.take() {
-            Some(maybe_value) => Poll::Ready(maybe_value),
+            Some(maybe_value) => {
+                Poll::Ready(maybe_value.map(|x| ocaml::FromValue::from_value(x)))
+            }
             None => {
                 shared_state.waker = Some(cx.waker().clone());
                 Poll::Pending
@@ -33,14 +43,20 @@ impl Future for Promise {
     }
 }
 
-impl Promise {
+impl<T> Promise<T>
+where
+    T: ocaml::FromValue,
+{
     pub fn new() -> Self {
         let shared_state = Rc::new(RefCell::new(PromiseSharedState {
             value: None,
             waker: None,
             completed: false,
         }));
-        Promise { shared_state }
+        Promise {
+            shared_state,
+            marker: PhantomData,
+        }
     }
 
     fn set_value(self: &Self, value: Result<ocaml::Value, ocaml::Error>) {
