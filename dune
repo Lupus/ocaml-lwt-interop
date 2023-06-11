@@ -20,7 +20,7 @@
  (action
   (no-infer
    (progn
-    (run ln -s %{project_root}/../../target _rust)
+    (run ln -s %{workspace_root}/../../target _rust)
     (setenv
      OCAML_BUILD_GENERATE_SIGNATURES
      OCAML_LWT_INTEROP
