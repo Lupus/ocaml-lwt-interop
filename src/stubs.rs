@@ -1,6 +1,6 @@
 use crate::local_executor;
 use crate::ptr::CamlRef;
-use crate::util::ensure_rooted_value;
+use crate::util::{ensure_rooted_value, ambient_gc};
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                       Promise                             //////////
@@ -57,7 +57,7 @@ pub fn lwti_executor_test(executor: CamlRef<Executor>, f: ocaml::Value) {
 
     let task = executor.spawn(async move {
         let mut page_nb = 0;
-        let gc = unsafe { ocaml::interop::OCamlRuntime::recover_handle() };
+        let gc = ambient_gc();
         let f_callable = ocaml::function!(f, (n: ocaml::Int) -> CamlRef<Promise<()>>);
         loop {
             f_callable(&gc, &page_nb).unwrap().clone().await.unwrap();
