@@ -36,6 +36,7 @@ pub use async_task::Task;
 use crate::{borrow, borrow_mut};
 
 /// A thread-local executor.
+#[derive(Clone)]
 pub struct LocalExecutor {
     /// The executor state.
     state: Rc<State>,

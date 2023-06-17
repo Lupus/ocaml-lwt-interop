@@ -52,17 +52,11 @@ pub fn lwti_executor_run_pending(executor: CamlRef<Executor>) {
 
 #[ocaml::func]
 #[ocaml::sig("executor -> (int -> promise) -> unit")]
-pub fn lwti_executor_test(executor: CamlRef<Executor>, f: ocaml::Value) {
-    let f = ensure_rooted_value(f);
-
-    let task = executor.spawn(async move {
-        let mut page_nb = 0;
-        let gc = ambient_gc();
-        let f_callable = ocaml::function!(f, (n: ocaml::Int) -> CamlRef<Promise<()>>);
-        loop {
-            f_callable(&gc, &page_nb).unwrap().clone().await.unwrap();
-            page_nb = page_nb + 1;
-        }
+pub fn lwti_executor_test(executor: CamlRef<Executor>, _f: ocaml::Value) {
+    eprintln!("executor at #1: {:?}", executor);
+    let task = executor.spawn(async {
+        eprintln!("executor at #2: {:?}", executor);
+        executor.spawn(async {}).detach();
     });
     task.detach();
 }

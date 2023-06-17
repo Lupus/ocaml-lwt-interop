@@ -22,6 +22,7 @@ module Runtime = struct
   let create () =
     let notification = Lwt_unix.make_notification ~once:false Fun.id in
     let executor = Rust.lwti_executor_create notification in
+    Gc.finalise (fun _ -> Printf.eprintf "finalizing executor\n%!") executor;
     Lwt_unix.set_notification notification (fun () ->
       Rust.lwti_executor_run_pending executor);
     { executor; notification }
