@@ -1,6 +1,6 @@
 use crate::local_executor;
 use crate::ptr::CamlRef;
-use crate::util::{ensure_rooted_value, ambient_gc};
+use crate::util::{ambient_gc, ensure_rooted_value};
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                       Promise                             //////////

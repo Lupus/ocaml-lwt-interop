@@ -32,9 +32,7 @@ where
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut shared_state = borrow_mut!(self.shared_state);
         match shared_state.value.take() {
-            Some(maybe_value) => {
-                Poll::Ready(maybe_value.map(|x| ocaml::FromValue::from_value(x)))
-            }
+            Some(maybe_value) => Poll::Ready(maybe_value.map(|x| ocaml::FromValue::from_value(x))),
             None => {
                 shared_state.waker = Some(cx.waker().clone());
                 Poll::Pending
