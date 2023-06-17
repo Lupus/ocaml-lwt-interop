@@ -9,6 +9,14 @@ pub fn ensure_rooted_value(value: ocaml::Value) -> ocaml::Value {
     }
 }
 
+// Provides static reference to "ambient" OCaml Runtime. It is safe to use this
+// function when your application is actually an OCaml one, and you extend it
+// with Rust, because in this case you have a guarantee that OCaml runtime is
+// always initialized and outlives any Rust code.
+pub fn ambient_gc() -> &'static mut ocaml::Runtime {
+    unsafe { ocaml::interop::OCamlRuntime::recover_handle() }
+}
+
 #[macro_export]
 macro_rules! borrow {
     ($var:expr) => {{
