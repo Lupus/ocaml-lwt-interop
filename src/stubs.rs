@@ -1,5 +1,5 @@
 use crate::local_executor;
-use crate::ptr::CamlRef;
+use crate::ptr::{CamlRef, CamlRet};
 use crate::util::{ambient_gc, ensure_rooted_value};
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ type Executor = local_executor::LocalExecutor;
 
 #[ocaml::func]
 #[ocaml::sig("int -> executor")]
-pub fn lwti_executor_create(notify_id: isize) -> CamlRef<Executor> {
+pub fn lwti_executor_create(notify_id: isize) -> CamlRet<Executor> {
     let mut executor = Executor::new();
     executor.set_notifier(crate::notification::Notification(notify_id));
     executor.into()
