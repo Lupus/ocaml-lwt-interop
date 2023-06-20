@@ -20,13 +20,22 @@
  (action
   (no-infer
    (progn
-    (run ln -s %{workspace_root}/../../target _rust)
     (setenv
      OCAML_BUILD_GENERATE_SIGNATURES
      OCAML_LWT_INTEROP
-     (run cargo build --target-dir _rust --release --offline))
-    (copy _rust/release/libocaml_lwt_interop.a libocaml_lwt_interop.a)
-    (copy _rust/release/libocaml_lwt_interop.so dllocaml_lwt_interop.so)))))
+     (run
+      cargo
+      build
+      --target-dir
+      %{workspace_root}/_rust
+      --release
+      --offline))
+    (copy
+     %{workspace_root}/_rust/release/libocaml_lwt_interop.a
+     libocaml_lwt_interop.a)
+    (copy
+     %{workspace_root}/_rust/release/libocaml_lwt_interop.so
+     dllocaml_lwt_interop.so)))))
 
 (library
  (name rust_async)
