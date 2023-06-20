@@ -9,27 +9,27 @@
 (dirs :standard .cargo)
 
 (rule
- (targets libocaml_lwt_interop.a dllocaml_lwt_interop.so rust.ml rust.mli)
+ (targets libocaml_lwt_interop.a dllocaml_lwt_interop.so)
  (deps
   (glob_files_rec *.toml)
   (glob_files_rec *.rs)
-  Cargo.lock
   .cargo/config
   (source_tree vendor))
  (locks cargo-build)
  (action
   (no-infer
    (progn
-    (setenv
-     OCAML_BUILD_GENERATE_SIGNATURES
-     OCAML_LWT_INTEROP
+    (chdir
+     %{workspace_root}
      (run
       cargo
       build
       --target-dir
       %{workspace_root}/_rust
       --release
-      --offline))
+      --offline
+      --package
+      ocaml-lwt-interop))
     (copy
      %{workspace_root}/_rust/release/libocaml_lwt_interop.a
      libocaml_lwt_interop.a)

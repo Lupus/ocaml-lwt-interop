@@ -1,13 +1,17 @@
+use std::env;
+
 fn main() -> std::io::Result<()> {
-    /* Generation of OCaml .ml/.mli is conditional on
-     * OCAML_BUILD_GENERATE_SIGNATURES environment variable, which is set in
-     * corresponding dune rule, launching cargo. This avoids generation when
-     * cargo is launched by IDE in source dir */
-    match std::env::var("OCAML_BUILD_GENERATE_SIGNATURES") {
-        Ok(v) => match v.as_str() {
-            "OCAML_LWT_INTEROP" => ocaml_build::Sigs::new("rust.ml").generate(),
-            _ => Result::Ok(()),
-        },
-        Err(_) => Result::Ok(()),
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=src/stubs.rs");
+    let current_dir = env::current_dir()?;
+    let current_dir = current_dir.to_str().unwrap();
+    let out_filename = "stubs.ml";
+    if current_dir.ends_with("/_build/default") {
+        println!(
+            "cargo:warning=[ocaml-lwt-interop/build.rs] Not generating {} as launched from dune build dir",
+            out_filename
+        );
+        return Ok(());
     }
+    ocaml_build::Sigs::new(out_filename).generate()
 }
