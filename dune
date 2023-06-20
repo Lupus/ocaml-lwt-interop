@@ -44,6 +44,5 @@
  (foreign_archives ocaml_lwt_interop)
  (c_library_flags
   (-lpthread -lc -lm))
- (inline_tests)
  (preprocess
   (pps lwt_ppx)))
