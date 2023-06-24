@@ -42,5 +42,11 @@ jobs:
       - name: Add Opam switch to PATH
         run: opam var bin >> $GITHUB_PATH
 
-      - name: Build
+      - name: Cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: Cargo clippy
+        run: cargo clippy --all -- -D warnings
+
+      - name: Cargo build
         run: cargo build --verbose
