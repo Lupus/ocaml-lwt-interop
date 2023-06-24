@@ -47,7 +47,7 @@ impl RefUnwindSafe for LocalExecutor {}
 
 impl fmt::Debug for LocalExecutor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        debug_executor(&self, "LocalExecutor", f)
+        debug_executor(self, "LocalExecutor", f)
     }
 }
 

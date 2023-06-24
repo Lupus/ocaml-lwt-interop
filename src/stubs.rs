@@ -60,8 +60,8 @@ pub fn lwti_executor_test(executor: CamlRef<Executor>, f: ocaml::Value) {
         let gc = ambient_gc();
         let f_callable = ocaml::function!(f, (n: ocaml::Int) -> CamlRef<Promise<()>>);
         loop {
-            f_callable(&gc, &page_nb).unwrap().clone().await.unwrap();
-            page_nb = page_nb + 1;
+            f_callable(gc, &page_nb).unwrap().clone().await.unwrap();
+            page_nb += 1;
         }
     });
     task.detach();

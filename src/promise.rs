@@ -57,7 +57,7 @@ where
         }
     }
 
-    fn set_value(self: &Self, value: Result<ocaml::Value, ocaml::Error>) {
+    fn set_value(&self, value: Result<ocaml::Value, ocaml::Error>) {
         let mut shared_state = borrow_mut!(self.shared_state);
         if shared_state.completed {
             panic!("Attempt to resolve an already resolved promise")
@@ -69,11 +69,20 @@ where
         }
     }
 
-    pub fn resolve(self: &Self, value: ocaml::Value) {
+    pub fn resolve(&self, value: ocaml::Value) {
         self.set_value(Ok(value))
     }
 
-    pub fn reject(self: &Self, exn: ocaml::Value) {
+    pub fn reject(&self, exn: ocaml::Value) {
         self.set_value(Err(ocaml::Error::Caml(ocaml::CamlError::Exception(exn))))
+    }
+}
+
+impl<T> Default for Promise<T>
+where
+    T: ocaml::FromValue,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
