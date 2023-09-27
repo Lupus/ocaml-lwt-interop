@@ -1,0 +1,26 @@
+(rule
+ (targets libocaml_lwt_interop.a dllocaml_lwt_interop.so)
+ (deps (universe))
+ (locks cargo-build)
+ (action
+  (progn
+   (run cargo build --release --offline --package ocaml-lwt-interop)
+   (run
+    mv
+    %{workspace_root}/../../target/release/libocaml_lwt_interop.a
+    libocaml_lwt_interop.a)
+   (run
+    mv
+    %{workspace_root}/../../target/release/libocaml_lwt_interop.so
+    dllocaml_lwt_interop.so))))
+
+(library
+ (name rust_async)
+ (public_name rust-async)
+ (libraries lwt.unix)
+ (foreign_archives ocaml_lwt_interop)
+ (c_library_flags
+  (-lpthread -lc -lm))
+ (preprocess
+  (pps lwt_ppx)))
+
