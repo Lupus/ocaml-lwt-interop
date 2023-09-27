@@ -1,3 +1,5 @@
+(data_only_dirs target)
+
 (vendored_dirs vendor)
 
 ; see https://github.com/ocaml/dune/issues/4795
@@ -5,44 +7,3 @@
 (subdir
  vendor/futures-core/src/task/
  (dirs :standard __internal))
-
-(dirs :standard .cargo)
-
-(rule
- (targets libocaml_lwt_interop.a dllocaml_lwt_interop.so rust.ml rust.mli)
- (deps
-  (glob_files_rec *.toml)
-  (glob_files_rec *.rs)
-  Cargo.lock
-  .cargo/config
-  (source_tree vendor))
- (locks cargo-build)
- (action
-  (no-infer
-   (progn
-    (setenv
-     OCAML_BUILD_GENERATE_SIGNATURES
-     OCAML_LWT_INTEROP
-     (run
-      cargo
-      build
-      --target-dir
-      %{workspace_root}/_rust
-      --release
-      --offline))
-    (copy
-     %{workspace_root}/_rust/release/libocaml_lwt_interop.a
-     libocaml_lwt_interop.a)
-    (copy
-     %{workspace_root}/_rust/release/libocaml_lwt_interop.so
-     dllocaml_lwt_interop.so)))))
-
-(library
- (name rust_async)
- (public_name rust-async)
- (libraries lwt.unix)
- (foreign_archives ocaml_lwt_interop)
- (c_library_flags
-  (-lpthread -lc -lm))
- (preprocess
-  (pps lwt_ppx)))
