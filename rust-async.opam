@@ -28,3 +28,8 @@ build: [
     "@doc" {with-doc}
   ]
 ]
+# This extensions connects this opam package to its corresponding Rust stubs
+# crate. An automated tool could traverse opam dependencies, find ones
+# containing such extension fields and combine a full set of Rust crate
+# dependencies for a given opam file.
+x-rust-stubs-crate: "ocaml-lwt-interop"
