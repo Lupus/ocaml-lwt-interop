@@ -8,6 +8,7 @@
 ; static library, containing all the necessary C functions exported for OCaml.
 ; See below in `rust_async_stubs` how such static Rust library can be linked to
 ; final OCaml executables.
+
 (library
  (name rust_async)
  (public_name rust-async)
@@ -37,6 +38,7 @@
 ; like this can not be linked into one binary, as static libs produced by Rust
 ; expose all Rust stdlib symbols, and linking will explode with collision
 ; errors.
+
 (library
  (name rust_async_stubs)
  (foreign_archives ocaml_lwt_interop)
