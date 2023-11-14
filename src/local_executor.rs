@@ -91,7 +91,8 @@ impl LocalExecutor {
         let index = active.vacant_entry().key();
         let state = self.state.clone();
         let future = async move {
-            let _guard = CallOnDrop(move || drop(borrow_mut!(state.active).try_remove(index)));
+            let _guard =
+                CallOnDrop(move || drop(borrow_mut!(state.active).try_remove(index)));
             future.await
         };
 
@@ -108,7 +109,10 @@ impl LocalExecutor {
             // called from the other threads when they will wake up our local
             // futures - so we wrap it with Self::schedule function, which has
             // Send explicitly marked in it's signature for this purpose.
-            async_task::spawn_unchecked(future, Self::schedule(&self.state.queue, notifier))
+            async_task::spawn_unchecked(
+                future,
+                Self::schedule(&self.state.queue, notifier),
+            )
         };
         active.insert(runnable.waker());
 
@@ -183,7 +187,11 @@ pub trait Notifier {
 }
 
 /// Debug implementation for `Executor` and `LocalExecutor`.
-fn debug_executor(executor: &LocalExecutor, name: &str, f: &mut fmt::Formatter) -> fmt::Result {
+fn debug_executor(
+    executor: &LocalExecutor,
+    name: &str,
+    f: &mut fmt::Formatter,
+) -> fmt::Result {
     f.debug_struct(name)
         .field("active", &borrow!(executor.state.active).len())
         .field("global_tasks", &executor.state.queue.len())
