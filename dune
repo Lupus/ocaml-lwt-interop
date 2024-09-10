@@ -1,9 +1,1 @@
 (data_only_dirs target)
-
-(vendored_dirs vendor)
-
-; see https://github.com/ocaml/dune/issues/4795
-
-(subdir
- vendor/futures-core/src/task/
- (dirs :standard __internal))
