@@ -16,3 +16,10 @@ concurrent-queue="2.0.*"
 
 [build-dependencies]
 ocaml-build = "1.0.0-beta.4"
+
+[workspace]
+
+members = [
+    ".",
+    "rust-staticlib"
+]

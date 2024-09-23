@@ -1,47 +1,6 @@
-; `rust-async` is a public lib, that uses `external` symbols from Rust stubs, it
-; does not directly depend on Rust stubs though, so you can run into linker
-; errors when used naively from an OCaml project.
-; Instead, the end user is expected to create a local crate of type
-; `["staticlib", "cdylib", "rlib"]` for their OCaml project, depend on
-; ocaml-lwt-interop crate there (re-exporting it via `pub use
-; ocaml_lwt_interop;`) in `src/lib.rs`. As the result, Rust will compile a
-; static library, containing all the necessary C functions exported for OCaml.
-; See below in `rust_async_stubs` how such static Rust library can be linked to
-; final OCaml executables.
-
 (library
  (name rust_async)
  (public_name rust-async)
- (libraries lwt.unix)
+ (libraries lwt.unix rust-staticlib)
  (preprocess
   (pps lwt_ppx)))
-
-(rule
- (targets libocaml_lwt_interop.a dllocaml_lwt_interop.so)
- (deps (universe))
- (locks cargo-build)
- (action
-  (progn
-   (run cargo build --release --offline --package ocaml-lwt-interop)
-   (run
-    mv
-    %{workspace_root}/../../target/release/libocaml_lwt_interop.a
-    libocaml_lwt_interop.a)
-   (run
-    mv
-    %{workspace_root}/../../target/release/libocaml_lwt_interop.so
-    dllocaml_lwt_interop.so))))
-
-; This library is deliberately empty from OCaml perspective. It's only purpose
-; is to drag Rust stubs static lib into the final executable linkage by dune.
-; Within this project it is used in test binaries. Bear in mind that two libs
-; like this can not be linked into one binary, as static libs produced by Rust
-; expose all Rust stdlib symbols, and linking will explode with collision
-; errors.
-
-(library
- (name rust_async_stubs)
- (foreign_archives ocaml_lwt_interop)
- (modules ())
- (c_library_flags
-  (-lpthread -lc -lm)))

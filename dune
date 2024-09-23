@@ -1,1 +1,2 @@
-(data_only_dirs target)
+;(data_only_dirs target)
+(dirs :standard \ target)
