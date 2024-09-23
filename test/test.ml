@@ -4,11 +4,16 @@ let main_rust () =
   let rt = Rust_async.Runtime.create () in
   print_endline "running Lwt+Rust test";
   let start = Unix.gettimeofday () in
-  let page = ref 0 in
   let pause = Lwt_unix.auto_pause 0.1 in
-  Rust_async.Runtime.test rt ~f:(fun p ->
-    page := p;
-    pause () |> Rust_async.Promise.of_lwt);
+  let page = ref 0 in
+  let rec aux x =
+    let%lwt () = Rust_async.Runtime.test rt in
+    page := x;
+    let%lwt () = pause () in
+    aux (x + 1)
+  in
+  let test () = Lwt.async (fun () -> aux 0) in
+  test ();
   print_endline "lwt sleeping";
   let%lwt () = Lwt_unix.sleep 10.0 in
   let finish = Unix.gettimeofday () in
@@ -28,11 +33,14 @@ let main_gc () =
   print_endline "running GC smoke test";
   let start = Unix.gettimeofday () in
   let page = ref 0 in
-  let pause = Lwt_unix.auto_pause 0.1 in
-  Rust_async.Runtime.test rt ~f:(fun p ->
-    page := p;
+  let rec aux x =
+    let%lwt () = Rust_async.Runtime.test rt in
+    page := x;
     Gc.full_major ();
-    pause () |> Rust_async.Promise.of_lwt);
+    aux (x + 1)
+  in
+  let test () = Lwt.async (fun () -> aux 0) in
+  test ();
   print_endline "lwt sleeping";
   Gc.full_major ();
   let%lwt () = Lwt_unix.sleep 10.0 in
