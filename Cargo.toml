@@ -10,9 +10,11 @@ path = "src/lib.rs"
 [dependencies]
 ocaml = "1.0.1"
 ocaml-interop = "0.10.0"
-async-task = "4.4.*"
-slab = "0.4.*"
-concurrent-queue="2.0.*"
+async-executor = "1.13"
+waker-fn = "1.2"
+futures-lite = "2.3"
+ctor = "0.2"
+ocaml-rs-smartptr = { version = "0.1.0" }
 
 [build-dependencies]
 ocaml-build = "1.0.0-beta.4"
@@ -23,3 +25,6 @@ members = [
     ".",
     "rust-staticlib"
 ]
+
+[patch.crates-io]
+ocaml-rs-smartptr = { git = "https://github.com/Lupus/ocaml-rs-smartptr.git" }
