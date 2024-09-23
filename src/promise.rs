@@ -1,90 +1,67 @@
-use crate::borrow_mut;
-use std::cell::RefCell;
+use ocaml::ToValue;
+use ocaml_rs_smartptr::util::ensure_rooted_value;
+
 use std::marker::PhantomData;
-use std::rc::Rc;
-use std::{future::Future, pin::Pin, task::Context, task::Poll, task::Waker};
 
-// Promise is largely based on timer future example from async book:
-// https://rust-lang.github.io/async-book/02_execution/03_wakeups.html
+use crate::util::ExportedRoot;
 
-#[derive(Debug)]
-struct PromiseSharedState {
-    value: Option<Result<ocaml::Value, ocaml::Error>>,
-    waker: Option<Waker>,
-    completed: bool,
+ocaml::import! {
+    fn olwti_lwt_task() -> (ocaml::Value, ocaml::Value);
+    fn olwti_lwt_wakeup_later(resolver: ocaml::Value, value: ocaml::Value);
+    fn olwti_lwt_wakeup_later_exn(resolver: ocaml::Value, exn: ocaml::Value);
 }
 
-#[derive(Clone, Debug)]
 pub struct Promise<T>
 where
-    T: ocaml::FromValue,
+    T: ocaml::ToValue,
 {
-    shared_state: Rc<RefCell<PromiseSharedState>>,
+    inner: ocaml::Value,
     marker: PhantomData<T>,
 }
 
-impl<T> Future for Promise<T>
+unsafe impl<T> ocaml::ToValue for Promise<T>
 where
-    T: ocaml::FromValue,
+    T: ocaml::ToValue,
 {
-    type Output = Result<T, ocaml::Error>; // Specify the output type of your future
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut shared_state = borrow_mut!(self.shared_state);
-        match shared_state.value.take() {
-            Some(maybe_value) => {
-                Poll::Ready(maybe_value.map(|x| ocaml::FromValue::from_value(x)))
-            }
-            None => {
-                shared_state.waker = Some(cx.waker().clone());
-                Poll::Pending
-            }
-        }
+    fn to_value(&self, _gc: &ocaml::Runtime) -> ocaml::Value {
+        self.inner.clone()
     }
 }
 
-impl<T> Promise<T>
+pub struct Resolver<T>
 where
-    T: ocaml::FromValue,
+    T: ocaml::ToValue,
 {
-    pub fn new() -> Self {
-        let shared_state = Rc::new(RefCell::new(PromiseSharedState {
-            value: None,
-            waker: None,
-            completed: false,
-        }));
-        Promise {
-            shared_state,
-            marker: PhantomData,
-        }
-    }
-
-    fn set_value(&self, value: Result<ocaml::Value, ocaml::Error>) {
-        let mut shared_state = borrow_mut!(self.shared_state);
-        if shared_state.completed {
-            panic!("Attempt to resolve an already resolved promise")
-        }
-        shared_state.completed = true;
-        shared_state.value = Some(value);
-        if let Some(waker) = shared_state.waker.take() {
-            waker.wake()
-        }
-    }
-
-    pub fn resolve(&self, value: ocaml::Value) {
-        self.set_value(Ok(value))
-    }
-
-    pub fn reject(&self, exn: ocaml::Value) {
-        self.set_value(Err(ocaml::Error::Caml(ocaml::CamlError::Exception(exn))))
-    }
+    resolver: ExportedRoot,
+    marker: PhantomData<T>,
 }
 
-impl<T> Default for Promise<T>
-where
-    T: ocaml::FromValue,
-{
-    fn default() -> Self {
-        Self::new()
+pub fn new<T: ocaml::ToValue>(gc: &mut ocaml::Runtime) -> (Promise<T>, Resolver<T>) {
+    let (v_fut, v_resolver) =
+        unsafe { olwti_lwt_task(gc) }.expect("olwti_lwt_task has thrown an exception");
+    let fut: Promise<T> = Promise {
+        inner: ensure_rooted_value(v_fut),
+        marker: PhantomData,
+    };
+    let resolver: Resolver<T> = Resolver {
+        resolver: ExportedRoot::new(gc, v_resolver),
+        marker: PhantomData,
+    };
+    (fut, resolver)
+}
+
+impl<T: ocaml::ToValue> Resolver<T> {
+    pub fn resolve(self, gc: &mut ocaml::Runtime, v: &T) {
+        let resolver = self.resolver.into_value(gc);
+        unsafe { olwti_lwt_wakeup_later(gc, resolver, v.to_value(gc)) }
+            .expect("olwti_lwt_wakeup_later has thrown an exception")
+    }
+
+    pub fn reject(self, gc: &mut ocaml::Runtime, error: impl std::error::Error) {
+        let resolver = self.resolver.into_value(gc);
+        unsafe {
+            olwti_lwt_wakeup_later_exn(gc, resolver, error.to_string().to_value(gc))
+        }
+        .expect("olwti_lwt_wakeup_later_exn has thrown an exception")
     }
 }

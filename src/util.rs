@@ -17,6 +17,23 @@ pub fn ambient_gc() -> &'static ocaml::Runtime {
     unsafe { ocaml::Runtime::recover_handle() }
 }
 
+pub struct ExportedRoot(ocaml::root::Root);
+
+unsafe impl Send for ExportedRoot {}
+
+impl ExportedRoot {
+    pub fn new(_gc: &mut ocaml::Runtime, value: ocaml::Value) -> Self {
+        match value {
+            ocaml::Value::Raw(v) => Self(unsafe { ocaml::root::Root::new(v) }),
+            ocaml::Value::Root(r) => Self(r),
+        }
+    }
+
+    pub fn into_value(self, _gc: &mut ocaml::Runtime) -> ocaml::Value {
+        ocaml::Value::Root(self.0)
+    }
+}
+
 #[macro_export]
 macro_rules! borrow {
     ($var:expr) => {{
