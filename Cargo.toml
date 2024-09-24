@@ -9,7 +9,6 @@ path = "src/lib.rs"
 
 [dependencies]
 ocaml = "1.0.1"
-ocaml-interop = "0.10.0"
 async-executor = "1.13"
 waker-fn = "1.2"
 futures-lite = "2.3"
