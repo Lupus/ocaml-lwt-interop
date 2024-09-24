@@ -1,4 +1,4 @@
-use crate::local_executor;
+use crate::bridged_executor;
 use crate::promise::Promise;
 use crate::util::ambient_gc;
 use ctor::ctor;
@@ -11,7 +11,7 @@ use ocaml_rs_smartptr::register_type;
 ///////////////////////////////////////////////////////////////////////////////
 
 #[ocaml::sig]
-type Executor = local_executor::BridgedExecutor;
+type Executor = bridged_executor::BridgedExecutor;
 
 #[ocaml::func]
 #[ocaml::sig("int -> executor")]
@@ -30,7 +30,7 @@ pub fn lwti_executor_run_pending(executor: DynBox<Executor>) {
 #[ocaml::func]
 #[ocaml::sig("executor -> unit Lwt.t")]
 pub fn lwti_executor_test(executor: DynBox<Executor>) -> Promise<()> {
-    let (fut, resolver) = crate::promise::new(gc);
+    let (fut, resolver) = Promise::new(gc);
     let ex = executor.coerce();
     let task = ex.spawn(async move {
         let gc = ambient_gc();
