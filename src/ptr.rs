@@ -1,4 +1,4 @@
-use ocaml::interop::{DynBox, OCaml};
+use ocaml_interop::{DynBox, OCaml};
 use std::{borrow::Borrow, fmt::Debug, marker::PhantomData, ops::Deref};
 
 #[derive(Debug)]
@@ -42,7 +42,8 @@ where
     T: Debug + 'static,
 {
     fn from_value(v: ocaml::Value) -> Self {
-        let dynbox: OCaml<DynBox<T>> = v.into();
+        let rt = unsafe { ocaml_interop::OCamlRuntime::recover_handle() };
+        let dynbox: OCaml<DynBox<T>> = unsafe { OCaml::new(rt, v.raw().0) };
         CamlRef::new(dynbox)
     }
 }
@@ -61,7 +62,7 @@ where
     T: Debug + 'static,
 {
     fn from(value: T) -> Self {
-        let gc = unsafe { ocaml::interop::OCamlRuntime::recover_handle() };
+        let gc = unsafe { ocaml_interop::OCamlRuntime::recover_handle() };
         let dynbox = OCaml::box_value(gc, value);
         CamlRef::new(dynbox)
     }

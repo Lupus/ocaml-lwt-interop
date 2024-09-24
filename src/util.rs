@@ -13,8 +13,8 @@ pub fn ensure_rooted_value(value: ocaml::Value) -> ocaml::Value {
 // function when your application is actually an OCaml one, and you extend it
 // with Rust, because in this case you have a guarantee that OCaml runtime is
 // always initialized and outlives any Rust code.
-pub fn ambient_gc() -> &'static mut ocaml::Runtime {
-    unsafe { ocaml::interop::OCamlRuntime::recover_handle() }
+pub fn ambient_gc() -> &'static ocaml::Runtime {
+    unsafe { ocaml::Runtime::recover_handle() }
 }
 
 #[macro_export]
