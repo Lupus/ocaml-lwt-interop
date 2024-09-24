@@ -36,7 +36,7 @@ where
     marker: PhantomData<T>,
 }
 
-pub fn new<T: ocaml::ToValue>(gc: &mut ocaml::Runtime) -> (Promise<T>, Resolver<T>) {
+pub fn new<T: ocaml::ToValue>(gc: &ocaml::Runtime) -> (Promise<T>, Resolver<T>) {
     let (v_fut, v_resolver) =
         unsafe { olwti_lwt_task(gc) }.expect("olwti_lwt_task has thrown an exception");
     let fut: Promise<T> = Promise {
@@ -51,13 +51,13 @@ pub fn new<T: ocaml::ToValue>(gc: &mut ocaml::Runtime) -> (Promise<T>, Resolver<
 }
 
 impl<T: ocaml::ToValue> Resolver<T> {
-    pub fn resolve(self, gc: &mut ocaml::Runtime, v: &T) {
+    pub fn resolve(self, gc: &ocaml::Runtime, v: &T) {
         let resolver = self.resolver.into_value(gc);
         unsafe { olwti_lwt_wakeup_later(gc, resolver, v.to_value(gc)) }
             .expect("olwti_lwt_wakeup_later has thrown an exception")
     }
 
-    pub fn reject(self, gc: &mut ocaml::Runtime, error: impl std::error::Error) {
+    pub fn reject(self, gc: &ocaml::Runtime, error: impl std::error::Error) {
         let resolver = self.resolver.into_value(gc);
         unsafe {
             olwti_lwt_wakeup_later_exn(gc, resolver, error.to_string().to_value(gc))
