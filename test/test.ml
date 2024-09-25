@@ -7,7 +7,7 @@ let main_rust () =
   let pause = Lwt_unix.auto_pause 0.1 in
   let page = ref 0 in
   let rec aux x =
-    let%lwt () = Rust_async.Runtime.test rt in
+    let%lwt () = Rust_async.Runtime.bench rt in
     page := x;
     let%lwt () = pause () in
     aux (x + 1)

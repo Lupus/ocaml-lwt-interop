@@ -3,6 +3,7 @@ module Runtime : sig
 
   val create : unit -> t
   val test : t -> unit Lwt.t
+  val bench : t -> unit Lwt.t
   val destroy : t -> unit Lwt.t
 
   module Private : sig
