@@ -1,6 +1,5 @@
-use crate::bridged_executor;
+use crate::bridged_executor::{self, ocaml_runtime, spawn};
 use crate::promise::Promise;
-use crate::util::ambient_gc;
 use ctor::ctor;
 use futures_lite::future;
 use ocaml_rs_smartptr::ptr::DynBox;
@@ -29,13 +28,29 @@ pub fn lwti_executor_run_pending(executor: DynBox<Executor>) {
 
 #[ocaml::func]
 #[ocaml::sig("executor -> unit Lwt.t")]
+pub fn lwti_executor_bench(executor: DynBox<Executor>) -> Promise<()> {
+    let (fut, resolver) = Promise::new(gc);
+    let ex = executor.coerce();
+    let task = ex.spawn(async move {
+        future::yield_now().await;
+        resolver.resolve(&ocaml_runtime(), &());
+    });
+    task.detach();
+    fut
+}
+
+#[ocaml::func]
+#[ocaml::sig("executor -> unit Lwt.t")]
 pub fn lwti_executor_test(executor: DynBox<Executor>) -> Promise<()> {
     let (fut, resolver) = Promise::new(gc);
     let ex = executor.coerce();
     let task = ex.spawn(async move {
-        let gc = ambient_gc();
         future::yield_now().await;
-        resolver.resolve(gc, &());
+        spawn(async {
+            future::yield_now().await;
+            resolver.resolve(&ocaml_runtime(), &());
+        })
+        .await
     });
     task.detach();
     fut
