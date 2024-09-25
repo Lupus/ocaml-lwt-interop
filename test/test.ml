@@ -1,13 +1,11 @@
 let main_rust () =
   print_endline "";
-  print_endline "creating runtime";
-  let rt = Rust_async.Runtime.create () in
   print_endline "running Lwt+Rust test";
   let start = Unix.gettimeofday () in
   let pause = Lwt_unix.auto_pause 0.1 in
   let page = ref 0 in
   let rec aux x =
-    let%lwt () = Rust_async.Runtime.bench rt in
+    let%lwt () = Rust_async.Runtime.bench () in
     page := x;
     let%lwt () = pause () in
     aux (x + 1)
@@ -27,14 +25,11 @@ let main_rust () =
 
 let main_gc () =
   print_endline "";
-  print_endline "creating runtime";
-  let rt = Rust_async.Runtime.create () in
-  Gc.finalise (fun _ -> Printf.printf "finalizing runtime\n%!") rt;
   print_endline "running GC smoke test";
   let start = Unix.gettimeofday () in
   let page = ref 0 in
   let rec aux x =
-    let%lwt () = Rust_async.Runtime.test rt in
+    let%lwt () = Rust_async.Runtime.test () in
     page := x;
     Gc.full_major ();
     aux (x + 1)

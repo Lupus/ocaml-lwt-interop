@@ -13,6 +13,11 @@ use std::{
 use async_executor::{Executor, Task};
 
 use future_local_storage::{FutureLocalStorage, FutureOnceCell};
+use ocaml_rs_smartptr::ptr::DynBox;
+
+ocaml::import! {
+    fn olwti_current_executor() -> DynBox<BridgedExecutor>;
+}
 
 pub struct LwtExecutorBridge {
     fut: Pin<Box<dyn Future<Output = ()> + Sync + Send + 'static>>,
@@ -124,4 +129,16 @@ pub fn ocaml_runtime<'a>() -> OcamlRuntimeGuard<'a> {
         _marker: PhantomData,
         _marker2: PhantomData,
     }
+}
+
+pub fn spawn_using_runtime<T>(
+    gc: &ocaml::Runtime,
+    future: impl Future<Output = T> + Send + 'static,
+) -> Task<T>
+where
+    T: Send + 'static,
+{
+    let ex = unsafe { olwti_current_executor(gc) }
+        .expect("olwti_current_executor has thrown an exception");
+    ex.coerce().spawn(future)
 }
