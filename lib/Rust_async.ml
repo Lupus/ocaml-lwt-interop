@@ -4,28 +4,34 @@ module Runtime = struct
     ; notification : int
     }
 
+  (* For OCaml 5 this should be domain-local storage, for OCaml 4 global ref is
+  fine, as in OCaml 4 there's only one domain  *)
+  let current = ref None
+
   let create () =
     let notification = Lwt_unix.make_notification ~once:false Fun.id in
     let executor = Stubs.lwti_executor_create notification in
     Lwt_unix.set_notification notification (fun () ->
       Stubs.lwti_executor_run_pending executor);
     Stubs.lwti_executor_run_pending executor;
-    { executor; notification }
+    let t = { executor; notification } in
+    Gc.finalise
+      (fun { executor = _; notification } -> Lwt_unix.stop_notification notification)
+      t;
+    t
   ;;
 
-  let bench t = Stubs.lwti_executor_bench t.executor
-  let test t = Stubs.lwti_executor_test t.executor
-
-  let destroy t =
-    Lwt_unix.stop_notification t.notification;
-    Lwt.return ()
+  let current () =
+    match !current with
+    | Some executor -> executor
+    | None ->
+      let executor = create () in
+      current := Some executor;
+      executor
   ;;
 
-  module Private = struct
-    type rust_executor = Stubs.executor
-
-    let rust_executor_of_t { executor; _ } = executor
-  end
+  let bench () = Stubs.lwti_executor_bench ()
+  let test () = Stubs.lwti_executor_test ()
 end
 
 let () =
@@ -33,5 +39,7 @@ let () =
   Callback.register "olwti_lwt_wakeup_later" Lwt.wakeup_later;
   Callback.register "olwti_lwt_wakeup_later_exn" (fun resolver msg ->
     Lwt.wakeup_later_exn resolver (Failure msg));
-  Callback.register "olwti_printexc_to_string" Printexc.to_string
+  Callback.register "olwti_current_executor" (fun () ->
+    let current = Runtime.current () in
+    current.executor)
 ;;
