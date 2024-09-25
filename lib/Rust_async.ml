@@ -13,6 +13,7 @@ module Runtime = struct
     { executor; notification }
   ;;
 
+  let bench t = Stubs.lwti_executor_bench t.executor
   let test t = Stubs.lwti_executor_test t.executor
 
   let destroy t =

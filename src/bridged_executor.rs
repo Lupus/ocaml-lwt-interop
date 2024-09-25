@@ -4,12 +4,15 @@
 use crate::notification::Notification;
 use std::{
     future::Future,
+    marker::PhantomData,
     pin::Pin,
     sync::{Arc, Mutex},
     task::Context,
 };
 
 use async_executor::{Executor, Task};
+
+use future_local_storage::{FutureLocalStorage, FutureOnceCell};
 
 pub struct LwtExecutorBridge {
     fut: Pin<Box<dyn Future<Output = ()> + Sync + Send + 'static>>,
@@ -36,22 +39,46 @@ impl LwtExecutorBridge {
     }
 }
 
+static CONTEXT: FutureOnceCell<ExecutorContext> = FutureOnceCell::new();
+
+struct ExecutorContext {
+    ex: Arc<Executor<'static>>,
+}
+
+impl ExecutorContext {
+    // Each future has its own executor context in which it is executed, and after execution
+    // is complete, we just ignore this context
+    pub async fn in_scope<R, F>(ex: Arc<Executor<'static>>, future: F) -> R
+    where
+        F: Future<Output = R>,
+    {
+        let (_this, result) = future.with_scope(&CONTEXT, Self::new(ex)).await;
+        result
+    }
+
+    fn new(ex: Arc<Executor<'static>>) -> Self {
+        
+        Self { ex }
+    }
+
+    fn with<R, F: FnOnce(&Self) -> R + std::panic::UnwindSafe>(scope: F) -> R {
+        if let Ok(res) = std::panic::catch_unwind(|| CONTEXT.with(|ctx| scope(ctx))) {
+            return res;
+        }
+        panic!("No ExecutionContext is registered within the current task")
+    }
+}
+
 pub struct BridgedExecutor {
     pub ex: Arc<Executor<'static>>,
     pub bridge: Mutex<LwtExecutorBridge>,
-    #[allow(dead_code)]
-    notification: Notification,
 }
 
 impl BridgedExecutor {
     pub fn new(notification: Notification) -> BridgedExecutor {
         let ex = Arc::new(Executor::new());
-        let bridge = Mutex::new(LwtExecutorBridge::new(ex.clone(), notification.clone()));
-        BridgedExecutor {
-            ex,
-            bridge,
-            notification,
-        }
+        let bridge = Mutex::new(LwtExecutorBridge::new(ex.clone(), notification));
+        BridgedExecutor { ex, bridge }
     }
 
     pub fn tick(&self) {
@@ -63,6 +90,38 @@ impl BridgedExecutor {
     where
         T: Send + 'static,
     {
-        self.ex.spawn(future)
+        self.ex
+            .spawn(ExecutorContext::in_scope(self.ex.clone(), future))
+    }
+}
+
+pub fn spawn<T>(future: impl Future<Output = T> + Send + 'static) -> Task<T>
+where
+    T: Send + 'static,
+{
+    let ex = ExecutorContext::with(|ctx| ctx.ex.clone());
+    ex.spawn(ExecutorContext::in_scope(ex.clone(), future))
+}
+
+pub struct OcamlRuntimeGuard<'a> {
+    _marker: PhantomData<&'a ()>,
+    _marker2: PhantomData<std::rc::Rc<()>>,
+}
+
+impl<'a> std::ops::Deref for OcamlRuntimeGuard<'a> {
+    type Target = ocaml::Runtime;
+
+    fn deref(&self) -> &'a Self::Target {
+        unsafe { ocaml::Runtime::recover_handle() }
+    }
+}
+
+pub fn ocaml_runtime<'a>() -> OcamlRuntimeGuard<'a> {
+    /* Ensure we're running in a task which is driven by our executor (which is
+     * in turn `tick`-ed only from the same OCaml domain) */
+    let () = ExecutorContext::with(|_ctx| ());
+    OcamlRuntimeGuard {
+        _marker: PhantomData,
+        _marker2: PhantomData,
     }
 }
