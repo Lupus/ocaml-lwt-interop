@@ -410,6 +410,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ocaml-lwt-interop-test-stubs"
+version = "0.1.0"
+dependencies = [
+ "futures-lite",
+ "ocaml 1.0.1",
+ "ocaml-lwt-interop",
+ "ocaml-rs-smartptr",
+]
+
+[[package]]
 name = "ocaml-rs-smartptr"
 version = "0.1.0"
 source = "git+https://github.com/Lupus/ocaml-rs-smartptr.git#5aa13571336c9e51b7a628a83e256bd5fdd3a4f4"
@@ -622,6 +632,7 @@ name = "rust-staticlib-rust-async"
 version = "0.1.0"
 dependencies = [
  "ocaml-lwt-interop",
+ "ocaml-lwt-interop-test-stubs",
 ]
 
 [[package]]
