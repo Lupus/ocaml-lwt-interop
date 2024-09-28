@@ -1,0 +1,14 @@
+[package]
+name = "ocaml-lwt-interop-test-stubs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+ocaml = "1.0.1"
+futures-lite = "2.3"
+ocaml-rs-smartptr = { version = "0.1.0" }
+ocaml-lwt-interop = { path=".." }

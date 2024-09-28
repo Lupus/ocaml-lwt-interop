@@ -23,7 +23,8 @@ ocaml-build = "1.0.0-beta.4"
 
 members = [
     ".",
-    "rust-staticlib"
+    "rust-staticlib",
+    "test-stubs",
 ]
 
 [patch.crates-io]

@@ -1,9 +1,8 @@
-use crate::bridged_executor::{self, ocaml_runtime, spawn, spawn_using_runtime};
-use crate::promise::Promise;
 use ctor::ctor;
-use futures_lite::future;
 use ocaml_rs_smartptr::ptr::DynBox;
 use ocaml_rs_smartptr::register_type;
+
+use crate::bridged_executor;
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                      Executor                             //////////
@@ -24,32 +23,6 @@ pub fn lwti_executor_create(notify_id: isize) -> DynBox<Executor> {
 pub fn lwti_executor_run_pending(executor: DynBox<Executor>) {
     let ex = executor.coerce();
     ex.tick();
-}
-
-#[ocaml::func]
-pub fn lwti_executor_bench() -> Promise<()> {
-    let (fut, resolver) = Promise::new(gc);
-    let task = spawn_using_runtime(gc, async move {
-        future::yield_now().await;
-        resolver.resolve(&ocaml_runtime(), &());
-    });
-    task.detach();
-    fut
-}
-
-#[ocaml::func]
-pub fn lwti_executor_test() -> Promise<()> {
-    let (fut, resolver) = Promise::new(gc);
-    let task = spawn_using_runtime(gc, async move {
-        future::yield_now().await;
-        spawn(async {
-            future::yield_now().await;
-            resolver.resolve(&ocaml_runtime(), &());
-        })
-        .await
-    });
-    task.detach();
-    fut
 }
 
 // Register supported traits for types that we bind

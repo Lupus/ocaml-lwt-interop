@@ -23,3 +23,5 @@ path = "lib.rs"
 [dependencies]
 # Declared by local opam package (rust-async)
 ocaml-lwt-interop = { path = ".." }
+# Declared by: command-line arguments
+ocaml-lwt-interop-test-stubs = { path = "../test-stubs" }

@@ -7,6 +7,7 @@
 (package
  (name rust-async)
  (synopsis "Interop between OCaml Lwt and Rust async")
+ (license "Apache License 2.0")
  (maintainers "Konstantin Olkhovskiy <lupus@oxnull.net>")
  (authors "The OCaml Lwt Interop contributors")
  (homepage "https://github.com/Lupus/ocaml-lwt-interop")
@@ -30,3 +31,10 @@
     (>= 0.25.1)
     (< 0.26.0)))
   (odoc :with-doc)))
+
+; (package
+;  (name rust-async-tests)
+;  (synopsis "Dummy package for test's staticlib")
+;  (maintainers "Konstantin Olkhovskiy <lupus@oxnull.net>")
+;  (authors "The OCaml Lwt Interop contributors")
+;  (allow_empty))
