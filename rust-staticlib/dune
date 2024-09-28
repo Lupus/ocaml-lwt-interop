@@ -4,7 +4,15 @@
  (deps ../rust-async.opam)
  (target dune.inc.gen)
  (action
-  (run rust-staticlib-gen -o %{target} --local-crate-path .. %{deps})))
+  (run
+   rust-staticlib-gen
+   -o
+   %{target}
+   --local-crate-path
+   ..
+   --extra-crate-path
+   ../test-stubs
+   %{deps})))
 
 (rule
  (alias runtest)
