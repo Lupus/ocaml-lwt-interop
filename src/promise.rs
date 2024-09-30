@@ -1,11 +1,13 @@
 use crate::{
-    bridged_executor::ocaml_runtime,
-    ml_box::{MlBox, MlBoxFuture},
-    util::ExportedRoot,
+    bridged_executor::ocaml_runtime, ml_box_future::MlBoxFuture, util::ExportedRoot,
 };
-use ocaml_rs_smartptr::{ptr::DynBox, util::ensure_rooted_value};
+use highway::{HighwayHash, HighwayHasher};
+use ocaml_gen::{const_random, OCamlDesc};
+use ocaml_rs_smartptr::ml_box::MlBox;
+use ocaml_rs_smartptr::ptr::DynBox;
 use std::{
     future::{Future, IntoFuture},
+    hash::Hash,
     marker::PhantomData,
     pin::Pin,
     task::{Context, Poll},
@@ -41,7 +43,7 @@ impl<T: ocaml::ToValue> Resolver<T> {
 }
 
 pub struct Promise<T> {
-    inner: ocaml::Value,
+    inner: MlBox,
     marker: PhantomData<T>,
 }
 
@@ -53,7 +55,7 @@ where
         let (v_fut, v_resolver) = unsafe { olwti_lwt_task(gc) }
             .expect("olwti_lwt_task has thrown an exception");
         let fut: Promise<T> = Promise {
-            inner: ensure_rooted_value(v_fut),
+            inner: MlBox::new(gc, v_fut),
             marker: PhantomData,
         };
         let resolver: Resolver<T> = Resolver {
@@ -68,8 +70,8 @@ unsafe impl<T> ocaml::ToValue for Promise<T>
 where
     T: ocaml::ToValue,
 {
-    fn to_value(&self, _gc: &ocaml::Runtime) -> ocaml::Value {
-        self.inner.clone()
+    fn to_value(&self, gc: &ocaml::Runtime) -> ocaml::Value {
+        self.inner.as_value(gc)
     }
 }
 
@@ -78,32 +80,16 @@ where
     T: ocaml::FromValue + ocaml::ToValue,
 {
     fn from_value(v: ocaml::Value) -> Self {
+        /* from_value should really receive runtime handle :shrug: */
+        /* let's just assume that no one is going to call from_value manually on
+         * a weird thread... */
+        let gc = unsafe { ocaml::Runtime::recover_handle() };
         Self {
-            inner: ensure_rooted_value(v),
+            inner: MlBox::new(gc, v),
             marker: PhantomData,
         }
     }
 }
-
-// impl<T> Promise<T>
-// where
-//     T: ocaml::FromValue + Send + 'static,
-// {
-//     pub fn as_future(
-//         &self,
-//         gc: &ocaml::Runtime,
-//     ) -> Box<dyn Future<Output = Result<T, crate::error::Error>>> {
-//         let wrapper = unsafe { olwti_wrap_lwt_future(gc, self.inner.clone()) }
-//             .expect("olwti_wrap_lwt_future has thrown an exception");
-//         let ml_box_future = wrapper.coerce().clone();
-//         let task = spawn_using_runtime(gc, async move {
-//             let ml_box = ml_box_future.await?;
-//             let gc = ocaml_runtime();
-//             Ok(T::from_value(ml_box.into_value(&gc)))
-//         });
-//         Box::new(task)
-//     }
-// }
 
 impl<T> IntoFuture for Promise<T>
 where
@@ -113,8 +99,29 @@ where
     type IntoFuture = PromiseFuture<T>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let gc = ocaml_runtime();
-        PromiseFuture::new(&gc, self)
+        PromiseFuture::new(self)
+    }
+}
+
+impl<T> OCamlDesc for Promise<T>
+where
+    T: OCamlDesc + Send,
+{
+    fn ocaml_desc(env: &::ocaml_gen::Env, generics: &[&str]) -> String {
+        format!("(({}) Lwt.t)", T::ocaml_desc(env, generics))
+    }
+
+    fn unique_id() -> u128 {
+        let key = highway::Key([
+            const_random!(u64),
+            const_random!(u64),
+            const_random!(u64),
+            const_random!(u64),
+        ]);
+        let mut hasher = HighwayHasher::new(key);
+        T::unique_id().hash(&mut hasher);
+        let result = hasher.finalize128();
+        (result[0] as u128) | ((result[1] as u128) << 64)
     }
 }
 
@@ -133,9 +140,9 @@ impl<T> PromiseFuture<T>
 where
     T: ocaml::FromValue + Send + 'static,
 {
-    fn new(gc: &ocaml::Runtime, promise: Promise<T>) -> Self {
+    fn new(promise: Promise<T>) -> Self {
         Self {
-            promise: Some(MlBox::new(gc, promise.inner)),
+            promise: Some(promise.inner.clone()),
             state: PromiseFutureState::NotStarted,
         }
     }
@@ -160,7 +167,8 @@ where
                             this.promise
                                 .take()
                                 .expect("Promise does not have a value inside")
-                                .into_value(&gc),
+                                .into_value(&gc)
+                                .expect("MlBox inside PromiseFuture is expected to be only reference"),
                         )
                     }
                     .expect("olwti_wrap_lwt_future has thrown an exception");
@@ -169,7 +177,9 @@ where
                     let future = Box::pin(async move {
                         let ml_box = ml_box_future.await?;
                         let gc = ocaml_runtime();
-                        Ok(T::from_value(ml_box.into_value(&gc)))
+                        let value = ml_box.into_value(&gc)
+                            .expect("MlBox from ml_box_future.await? is expected to be only reference");
+                        Ok(T::from_value(value))
                     });
 
                     this.state = PromiseFutureState::Running(future);

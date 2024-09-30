@@ -29,9 +29,6 @@ module Runtime = struct
       current := Some executor;
       executor
   ;;
-
-  let bench () = Stubs.lwti_executor_bench ()
-  let test () = Stubs.lwti_executor_test ()
 end
 
 let () =

@@ -15,6 +15,8 @@ waker-fn = "1.2"
 futures-lite = "2.3"
 future-local-storage = "0.1.1"
 ctor = "0.2"
+ocaml-gen = "0.1.5"
+highway = "1.2.0"
 ocaml-rs-smartptr = { version = "0.1.0" }
 
 [build-dependencies]

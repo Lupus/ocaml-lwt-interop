@@ -1,3 +1,9 @@
+external lwti_tests_bench : unit -> unit Lwt.t = "lwti_tests_bench"
+external lwti_tests_test1 : unit -> unit Lwt.t = "lwti_tests_test1"
+external lwti_tests_test2 : (unit -> unit Lwt.t) -> unit Lwt.t = "lwti_tests_test2"
+
+let () = ignore lwti_tests_test1
+
 let main_rust () =
   print_endline "";
   print_endline "running Lwt+Rust test";
@@ -5,9 +11,36 @@ let main_rust () =
   let pause = Lwt_unix.auto_pause 0.1 in
   let page = ref 0 in
   let rec aux x =
-    let%lwt () = Rust_async.Runtime.bench () in
+    let%lwt () = lwti_tests_bench () in
     page := x;
     let%lwt () = pause () in
+    aux (x + 1)
+  in
+  let test () = Lwt.async (fun () -> aux 0) in
+  test ();
+  print_endline "lwt sleeping";
+  let%lwt () = Lwt_unix.sleep 10.0 in
+  let finish = Unix.gettimeofday () in
+  Printf.printf
+    "%.3f iterations per second, %d iterations total [Rust+Lwt]\n"
+    (float_of_int !page /. (finish -. start))
+    !page;
+  print_endline "lwt main returning";
+  Lwt.return ()
+;;
+
+let main_rust_slow () =
+  print_endline "";
+  print_endline "running Lwt+Rust (slow) test";
+  let start = Unix.gettimeofday () in
+  let pause = Lwt_unix.auto_pause 0.1 in
+  let page = ref 0 in
+  let rec aux x =
+    let%lwt () =
+      lwti_tests_test2 (fun () ->
+        page := x;
+        pause ())
+    in
     aux (x + 1)
   in
   let test () = Lwt.async (fun () -> aux 0) in
@@ -29,8 +62,15 @@ let main_gc () =
   let start = Unix.gettimeofday () in
   let page = ref 0 in
   let rec aux x =
-    let%lwt () = Rust_async.Runtime.test () in
-    page := x;
+    let%lwt () =
+      lwti_tests_test2 (fun () ->
+        Gc.full_major ();
+        page := x;
+        Gc.full_major ();
+        let%lwt () = Lwt.pause () in
+        Gc.full_major ();
+        Lwt.return ())
+    in
     Gc.full_major ();
     aux (x + 1)
   in
@@ -82,6 +122,7 @@ let () =
     (match Sys.argv with
      | [| _; "lwt" |] -> main_lwt ()
      | [| _; "rust" |] -> main_rust ()
+     | [| _; "rust-slow" |] -> main_rust_slow ()
      | [| _; "gc" |] -> main_gc ()
      | [| _ |] ->
        failwith "no command provided on command line - should be one of: lwt, rust, gc"

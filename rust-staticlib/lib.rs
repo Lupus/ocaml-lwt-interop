@@ -2,3 +2,4 @@
 
 pub use ocaml_lwt_interop;
 pub use ocaml_lwt_interop_test_stubs;
+pub use ocaml_rs_smartptr;

@@ -1,9 +1,10 @@
 use ctor::ctor;
+use ocaml_rs_smartptr::ml_box::MlBox;
 use ocaml_rs_smartptr::ptr::DynBox;
 use ocaml_rs_smartptr::register_type;
 
 use crate::bridged_executor;
-use crate::ml_box::{MlBox, MlBoxFuture};
+use crate::ml_box_future::MlBoxFuture;
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                       Promise                             //////////
@@ -57,7 +58,7 @@ fn register_rtti() {
     );
     register_type!(
         {
-            ty: crate::ml_box::MlBoxFuture,
+            ty: crate::ml_box_future::MlBoxFuture,
             marker_traits: [core::marker::Sync, core::marker::Send],
             object_safe_traits: [],
         }
