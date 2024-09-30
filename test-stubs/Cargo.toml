@@ -12,5 +12,6 @@ anyhow = "1.0.89"
 async-task = "4.7.1"
 ocaml = "1.0.1"
 futures-lite = "2.3"
+paste = "1.0.15"
 ocaml-rs-smartptr = { version = "0.1.0" }
 ocaml-lwt-interop = { path=".." }

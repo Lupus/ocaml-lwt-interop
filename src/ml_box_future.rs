@@ -5,25 +5,9 @@ use std::{
     task::{Context, Poll, Waker},
 };
 
-#[derive(Debug)]
-pub struct MlBox(ocaml::root::Root);
+use ocaml_rs_smartptr::ml_box::MlBox;
 
-unsafe impl Send for MlBox {}
-
-impl MlBox {
-    pub fn new(_gc: &ocaml::Runtime, value: ocaml::Value) -> Self {
-        match value {
-            ocaml::Value::Raw(v) => Self(unsafe { ocaml::root::Root::new(v) }),
-            ocaml::Value::Root(r) => Self(r),
-        }
-    }
-
-    pub fn into_value(self, _gc: &ocaml::Runtime) -> ocaml::Value {
-        ocaml::Value::Root(self.0)
-    }
-}
-
-// Promise is largely based on timer future example from async book:
+// MlBoxFutureSharedState is largely based on timer future example from async book:
 // https://rust-lang.github.io/async-book/02_execution/03_wakeups.html
 
 #[derive(Debug)]
