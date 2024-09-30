@@ -17,6 +17,10 @@
    (< 5.0.0))
   dune
   conf-rust-2021
+  (rust-staticlib
+   (>= ~dev))
+  (ocaml-rs-smartptr
+   (>= 0.1.2))
   (lwt
    (and
     (>= 5.6.0)
@@ -31,10 +35,3 @@
     (>= 0.25.1)
     (< 0.26.0)))
   (odoc :with-doc)))
-
-; (package
-;  (name rust-async-tests)
-;  (synopsis "Dummy package for test's staticlib")
-;  (maintainers "Konstantin Olkhovskiy <lupus@oxnull.net>")
-;  (authors "The OCaml Lwt Interop contributors")
-;  (allow_empty))

@@ -6,5 +6,3 @@ external lwti_mlbox_future_reject: mlbox_future -> string -> unit = "lwti_mlbox_
 type executor
 external lwti_executor_create: int -> executor = "lwti_executor_create"
 external lwti_executor_run_pending: executor -> unit = "lwti_executor_run_pending"
-external lwti_executor_bench: unit -> unit Lwt.t = "lwti_executor_bench"
-external lwti_executor_test: unit -> unit Lwt.t = "lwti_executor_test"
