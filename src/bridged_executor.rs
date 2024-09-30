@@ -142,3 +142,26 @@ where
         .expect("olwti_current_executor has thrown an exception");
     ex.coerce().spawn(future)
 }
+
+pub struct Handle {
+    ex: Arc<Executor<'static>>,
+}
+
+impl Handle {
+    fn new(ex: Arc<Executor<'static>>) -> Self {
+        Self { ex }
+    }
+
+    pub fn spawn<T>(&self, future: impl Future<Output = T> + Send + 'static) -> Task<T>
+    where
+        T: Send + 'static,
+    {
+        self.ex
+            .spawn(ExecutorContext::in_scope(self.ex.clone(), future))
+    }
+}
+
+pub fn handle() -> Handle {
+    let ex = ExecutorContext::with(|ctx| ctx.ex.clone());
+    Handle::new(ex)
+}

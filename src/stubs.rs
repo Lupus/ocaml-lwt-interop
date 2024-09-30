@@ -3,6 +3,26 @@ use ocaml_rs_smartptr::ptr::DynBox;
 use ocaml_rs_smartptr::register_type;
 
 use crate::bridged_executor;
+use crate::ml_box::{MlBox, MlBoxFuture};
+
+///////////////////////////////////////////////////////////////////////////////
+//////////                       Promise                             //////////
+///////////////////////////////////////////////////////////////////////////////
+
+#[ocaml::func]
+pub fn lwti_mlbox_future_create() -> DynBox<MlBoxFuture> {
+    MlBoxFuture::new().into()
+}
+
+#[ocaml::func]
+pub fn lwti_mlbox_future_resolve(fut: DynBox<MlBoxFuture>, value: ocaml::Value) {
+    fut.coerce().resolve(MlBox::new(gc, value));
+}
+
+#[ocaml::func]
+pub fn lwti_mlbox_future_reject(fut: DynBox<MlBoxFuture>, msg: String) {
+    fut.coerce().reject(msg);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                      Executor                             //////////
@@ -31,6 +51,13 @@ fn register_rtti() {
     register_type!(
         {
             ty: crate::stubs::Executor,
+            marker_traits: [core::marker::Sync, core::marker::Send],
+            object_safe_traits: [],
+        }
+    );
+    register_type!(
+        {
+            ty: crate::ml_box::MlBoxFuture,
             marker_traits: [core::marker::Sync, core::marker::Send],
             object_safe_traits: [],
         }

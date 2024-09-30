@@ -41,5 +41,12 @@ let () =
     Lwt.wakeup_later_exn resolver (Failure msg));
   Callback.register "olwti_current_executor" (fun () ->
     let current = Runtime.current () in
-    current.executor)
+    current.executor);
+  Callback.register "olwti_wrap_lwt_future" (fun fut ->
+    let wrapper = Stubs.lwti_mlbox_future_create () in
+    Lwt.on_any
+      fut
+      (fun value -> Stubs.lwti_mlbox_future_resolve wrapper value)
+      (fun exn -> Stubs.lwti_mlbox_future_reject wrapper (Printexc.to_string exn));
+    wrapper)
 ;;
