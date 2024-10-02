@@ -1,0 +1,13 @@
+[package]
+name = "stubs-gen"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stubs-gen"
+path = "stubs-gen.rs"
+
+[dependencies]
+ocaml-lwt-interop = { path="../.." }
+ocaml-rs-smartptr = { version="*" }
+ocaml-gen = "*"
