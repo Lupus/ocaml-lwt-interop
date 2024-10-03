@@ -71,6 +71,7 @@
 
 (rule
  (target rust-deps.inc)
+ (alias rust-deps)
  (deps
   (alias generated/populate-rust-staticlib)
   (glob_files_rec %{workspace_root}/*.rs)
