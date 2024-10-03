@@ -23,7 +23,7 @@ path = "lib.rs"
 [dependencies]
 # Declared by local opam package (rust-async)
 ocaml-lwt-interop = { path = ".." }
-# Declared by: opam package `ocaml-rs-smartptr.0.1.2'
+# Declared by: opam package `ocaml-rs-smartptr.0.1.0'
 ocaml-rs-smartptr = { version = "=0.1.0" }
 # Declared by: command-line arguments
 ocaml-lwt-interop-test-stubs = { path = "../test-stubs" }
