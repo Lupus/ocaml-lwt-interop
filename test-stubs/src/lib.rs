@@ -1,8 +1,11 @@
 use async_task::Task;
 use futures_lite::future;
 use ocaml_lwt_interop::async_func::OCamlAsyncFunc;
-use ocaml_lwt_interop::bridged_executor::{ocaml_runtime, spawn, spawn_using_runtime};
+use ocaml_lwt_interop::bridged_executor::{
+    self, ocaml_runtime, spawn, spawn_using_runtime,
+};
 use ocaml_lwt_interop::promise::Promise;
+use tokio::time::{sleep, Duration};
 
 #[ocaml::func]
 pub fn lwti_tests_bench() -> Promise<()> {
@@ -39,15 +42,25 @@ pub fn lwti_tests_test2(f: OCamlAsyncFunc<(), ()>) -> Promise<()> {
         Ok(())
     });
     let task = spawn_using_runtime(gc, async move {
-        match task.await {
-            Ok(()) => {
-                resolver.resolve(&ocaml_runtime(), &());
-            }
-            Err(msg) => {
-                let gc = &ocaml_runtime();
-                resolver.reject(gc, format!("Task failed: {}", msg));
-            }
-        }
+        let handle = bridged_executor::handle();
+        future::yield_now().await;
+        tokio::spawn(async move {
+            sleep(Duration::from_secs(0)).await;
+            let task = handle.spawn(async {
+                let res = task.await;
+                sleep(Duration::from_secs(0)).await;
+                let gc = ocaml_runtime();
+                match res {
+                    Ok(()) => {
+                        resolver.resolve(&gc, &());
+                    }
+                    Err(msg) => {
+                        resolver.reject(&gc, format!("Task failed: {}", msg));
+                    }
+                }
+            });
+            let () = task.await;
+        });
     });
     task.detach();
     fut

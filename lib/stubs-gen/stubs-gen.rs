@@ -6,6 +6,7 @@ use std::io;
 use std::io::Write;
 
 fn main() -> std::io::Result<()> {
+    ocaml_rs_smartptr::registry::initialize_plugins();
     let mut w = String::new();
     let env = &mut Env::new();
 
