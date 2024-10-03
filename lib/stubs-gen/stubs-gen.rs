@@ -16,6 +16,12 @@ fn main() -> std::io::Result<()> {
         ocaml_gen::decl_func!(w, env, lwti_mlbox_future_reject => "reject");
     });
 
+    ocaml_gen::decl_module!(w, env, "Executor", {
+        ocaml_gen::decl_type!(w, env, Executor => "t");
+        ocaml_gen::decl_func!(w, env, lwti_executor_create => "create");
+        ocaml_gen::decl_func!(w, env, lwti_executor_run_pending => "run_pending");
+    });
+
     io::stdout().write_all(w.as_bytes())?;
     Ok(())
 }

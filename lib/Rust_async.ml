@@ -1,19 +1,18 @@
 module Runtime = struct
   type t =
-    { executor : Stubs.executor
+    { executor : Stubs.Executor.t
     ; notification : int
     }
 
   (* For OCaml 5 this should be domain-local storage, for OCaml 4 global ref is
-  fine, as in OCaml 4 there's only one domain  *)
+     fine, as in OCaml 4 there's only one domain *)
   let current = ref None
 
   let create () =
     let notification = Lwt_unix.make_notification ~once:false Fun.id in
-    let executor = Stubs.lwti_executor_create notification in
-    Lwt_unix.set_notification notification (fun () ->
-      Stubs.lwti_executor_run_pending executor);
-    Stubs.lwti_executor_run_pending executor;
+    let executor = Stubs.Executor.create notification in
+    Lwt_unix.set_notification notification (fun () -> Stubs.Executor.run_pending executor);
+    Stubs.Executor.run_pending executor;
     let t = { executor; notification } in
     Gc.finalise
       (fun { executor = _; notification } -> Lwt_unix.stop_notification notification)
@@ -40,10 +39,10 @@ let () =
     let current = Runtime.current () in
     current.executor);
   Callback.register "olwti_wrap_lwt_future" (fun fut ->
-    let wrapper = Stubs.lwti_mlbox_future_create () in
+    let wrapper = Stubs.Future.create () in
     Lwt.on_any
       fut
-      (fun value -> Stubs.lwti_mlbox_future_resolve wrapper value)
-      (fun exn -> Stubs.lwti_mlbox_future_reject wrapper (Printexc.to_string exn));
+      (fun value -> Stubs.Future.resolve wrapper value)
+      (fun exn -> Stubs.Future.reject wrapper (Printexc.to_string exn));
     wrapper)
 ;;
