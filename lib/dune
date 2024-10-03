@@ -1,7 +1,15 @@
 (library
  (name rust_async)
  (public_name rust-async)
- (libraries lwt.unix rust-staticlib)
+ (libraries lwt.unix ocaml-rs-smartptr rust-staticlib)
  (flags (-linkall))
  (preprocess
   (pps lwt_ppx)))
+
+(rule
+ (targets Stubs.ml)
+ (mode promote)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run stubs-gen/stubs-gen))))

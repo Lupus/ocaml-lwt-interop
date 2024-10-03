@@ -1,0 +1,8 @@
+(rule
+ (targets stubs-gen)
+ (deps
+  stubs-gen.rs
+  (alias ../../rust-staticlib/rust-deps))
+ (locks cargo-build)
+ (action
+  (run rust-staticlib-build stubs-gen)))
