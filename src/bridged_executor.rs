@@ -6,14 +6,41 @@ use std::{
     future::Future,
     marker::PhantomData,
     pin::Pin,
-    sync::{Arc, Mutex},
-    task::Context,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex, OnceLock, Weak,
+    },
+    task::{Context, Waker},
 };
 
 use async_executor::{Executor, Task};
+use tokio::runtime::Builder;
 
 use future_local_storage::{FutureLocalStorage, FutureOnceCell};
 use ocaml_rs_smartptr::ptr::DynBox;
+
+fn global_tokio_runtime() -> Arc<tokio::runtime::Runtime> {
+    static RT: OnceLock<Mutex<Weak<tokio::runtime::Runtime>>> = OnceLock::new();
+    let mut weak_rt = RT.get_or_init(|| Mutex::new(Weak::new())).lock().unwrap();
+    match weak_rt.upgrade() {
+        Some(rt) => rt,
+        None => {
+            let new_rt = Arc::new(
+                Builder::new_multi_thread()
+                    .enable_all()
+                    .thread_name_fn(|| {
+                        static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
+                        let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
+                        format!("olwti-tokio-worker-{}", id)
+                    })
+                    .build()
+                    .unwrap(),
+            );
+            *weak_rt = Arc::downgrade(&new_rt);
+            new_rt
+        }
+    }
+}
 
 ocaml::import! {
     fn olwti_current_executor() -> DynBox<BridgedExecutor>;
@@ -21,25 +48,22 @@ ocaml::import! {
 
 pub struct LwtExecutorBridge {
     fut: Pin<Box<dyn Future<Output = ()> + Sync + Send + 'static>>,
-    notification: Notification,
+    waker: Waker,
 }
 
 impl LwtExecutorBridge {
     fn new(ex: Arc<Executor<'static>>, notification: Notification) -> Self {
+        let waker = waker_fn::waker_fn(move || notification.send());
         Self {
             fut: Box::pin(async move {
-                println!("+++ running ex till pending future");
                 ex.run(futures_lite::future::pending::<()>()).await;
-                println!("--- running ex till pending future");
             }),
-            notification,
+            waker,
         }
     }
 
     pub fn tick(&mut self) {
-        let notification = self.notification;
-        let waker = waker_fn::waker_fn(move || notification.send());
-        let mut cx = Context::from_waker(&waker);
+        let mut cx = Context::from_waker(&self.waker);
         let _ = self.fut.as_mut().poll(&mut cx);
     }
 }
@@ -62,7 +86,6 @@ impl ExecutorContext {
     }
 
     fn new(ex: Arc<Executor<'static>>) -> Self {
-        
         Self { ex }
     }
 
@@ -77,17 +100,20 @@ impl ExecutorContext {
 pub struct BridgedExecutor {
     pub ex: Arc<Executor<'static>>,
     pub bridge: Mutex<LwtExecutorBridge>,
+    pub rt: Arc<tokio::runtime::Runtime>,
 }
 
 impl BridgedExecutor {
     pub fn new(notification: Notification) -> BridgedExecutor {
         let ex = Arc::new(Executor::new());
         let bridge = Mutex::new(LwtExecutorBridge::new(ex.clone(), notification));
-        BridgedExecutor { ex, bridge }
+        let rt = global_tokio_runtime();
+        BridgedExecutor { ex, bridge, rt }
     }
 
     pub fn tick(&self) {
         let mut bridge = self.bridge.lock().unwrap();
+        let _guard = self.rt.enter();
         bridge.tick();
     }
 
@@ -106,6 +132,10 @@ where
 {
     let ex = ExecutorContext::with(|ctx| ctx.ex.clone());
     ex.spawn(ExecutorContext::in_scope(ex.clone(), future))
+}
+
+pub fn tokio_rt() -> Arc<tokio::runtime::Runtime> {
+    global_tokio_runtime()
 }
 
 pub struct OcamlRuntimeGuard<'a> {
