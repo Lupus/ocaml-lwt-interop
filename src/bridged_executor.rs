@@ -17,7 +17,6 @@ pub struct LwtExecutorBridge {
 }
 
 impl LwtExecutorBridge {
-    // Replace with Arc<Executor<'static>>, or however you're storing the executor
     fn new(ex: Arc<Executor<'static>>, notification: Notification) -> Self {
         Self {
             fut: Box::pin(async move {
@@ -30,7 +29,7 @@ impl LwtExecutorBridge {
     }
 
     pub fn tick(&mut self) {
-        let notification = self.notification.clone();
+        let notification = self.notification;
         let waker = waker_fn::waker_fn(move || notification.send());
         let mut cx = Context::from_waker(&waker);
         let _ = self.fut.as_mut().poll(&mut cx);
