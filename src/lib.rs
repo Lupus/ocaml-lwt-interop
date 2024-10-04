@@ -6,3 +6,5 @@ pub mod notification;
 pub mod promise;
 pub mod stubs;
 pub mod util;
+
+pub use ocaml_lwt_interop_macro::func;

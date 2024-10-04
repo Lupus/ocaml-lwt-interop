@@ -3,3 +3,11 @@
  (libraries unix lwt.unix rust-async rust_async_stubs)
  (preprocess
   (pps lwt_ppx)))
+
+(rule
+ (targets Stubs.ml)
+ (mode promote)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run stubs-gen/test-stubs-gen))))

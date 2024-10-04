@@ -3,9 +3,11 @@
 
 use crate::notification::Notification;
 use std::{
+    cell::RefCell,
     future::Future,
     marker::PhantomData,
     pin::Pin,
+    rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex, OnceLock, Weak,
@@ -16,7 +18,6 @@ use std::{
 use async_executor::{Executor, Task};
 use tokio::runtime::Builder;
 
-use future_local_storage::{FutureLocalStorage, FutureOnceCell};
 use ocaml_rs_smartptr::ptr::DynBox;
 
 fn global_tokio_runtime() -> Arc<tokio::runtime::Runtime> {
@@ -68,32 +69,34 @@ impl LwtExecutorBridge {
     }
 }
 
-static CONTEXT: FutureOnceCell<ExecutorContext> = FutureOnceCell::new();
-
+#[derive(Clone)]
 struct ExecutorContext {
     ex: Arc<Executor<'static>>,
 }
 
 impl ExecutorContext {
-    // Each future has its own executor context in which it is executed, and after execution
-    // is complete, we just ignore this context
-    pub async fn in_scope<R, F>(ex: Arc<Executor<'static>>, future: F) -> R
-    where
-        F: Future<Output = R>,
-    {
-        let (_this, result) = future.with_scope(&CONTEXT, Self::new(ex)).await;
-        result
-    }
-
     fn new(ex: Arc<Executor<'static>>) -> Self {
         Self { ex }
     }
+}
 
-    fn with<R, F: FnOnce(&Self) -> R + std::panic::UnwindSafe>(scope: F) -> R {
-        if let Ok(res) = std::panic::catch_unwind(|| CONTEXT.with(|ctx| scope(ctx))) {
-            return res;
-        }
-        panic!("No ExecutionContext is registered within the current task")
+thread_local! {
+    static EXECUTOR_STACK: RefCell<Vec<Rc<ExecutorContext>>> = const { RefCell::new(Vec::new()) };
+}
+
+pub struct ExecutorGuard {
+    ex_ctx: Rc<ExecutorContext>,
+}
+
+impl Drop for ExecutorGuard {
+    fn drop(&mut self) {
+        EXECUTOR_STACK.with(|stack| {
+            let mut stack = stack.borrow_mut();
+            assert!(stack
+                .last()
+                .map_or(false, |ex_ctx| Rc::ptr_eq(ex_ctx, &self.ex_ctx)));
+            stack.pop();
+        });
     }
 }
 
@@ -114,6 +117,7 @@ impl BridgedExecutor {
     pub fn tick(&self) {
         let mut bridge = self.bridge.lock().unwrap();
         let _guard = self.rt.enter();
+        let _self_guard = self.enter();
         bridge.tick();
     }
 
@@ -121,8 +125,19 @@ impl BridgedExecutor {
     where
         T: Send + 'static,
     {
-        self.ex
-            .spawn(ExecutorContext::in_scope(self.ex.clone(), future))
+        self.ex.spawn(future)
+    }
+
+    pub fn enter(&self) -> ExecutorGuard {
+        let ex_ctx = Rc::new(ExecutorContext::new(self.ex.clone()));
+        EXECUTOR_STACK.with(|stack| {
+            stack.borrow_mut().push(ex_ctx.clone());
+        });
+        ExecutorGuard { ex_ctx }
+    }
+
+    fn current() -> Option<Rc<ExecutorContext>> {
+        EXECUTOR_STACK.with(|stack| stack.borrow().last().cloned())
     }
 }
 
@@ -130,8 +145,10 @@ pub fn spawn<T>(future: impl Future<Output = T> + Send + 'static) -> Task<T>
 where
     T: Send + 'static,
 {
-    let ex = ExecutorContext::with(|ctx| ctx.ex.clone());
-    ex.spawn(ExecutorContext::in_scope(ex.clone(), future))
+    let ctx = BridgedExecutor::current().expect(
+        "There is no ocaml-lwt-interop executor context registered for current thread!",
+    );
+    ctx.ex.spawn(future)
 }
 
 pub fn tokio_rt() -> Arc<tokio::runtime::Runtime> {
@@ -154,7 +171,9 @@ impl<'a> std::ops::Deref for OcamlRuntimeGuard<'a> {
 pub fn ocaml_runtime<'a>() -> OcamlRuntimeGuard<'a> {
     /* Ensure we're running in a task which is driven by our executor (which is
      * in turn `tick`-ed only from the same OCaml domain) */
-    let () = ExecutorContext::with(|_ctx| ());
+    let _ctx = BridgedExecutor::current().expect(
+        "Can't obtain OCaml runtime handle when running outside of ocaml-lwt-interop executor context!",
+    );
     OcamlRuntimeGuard {
         _marker: PhantomData,
         _marker2: PhantomData,
@@ -174,24 +193,25 @@ where
 }
 
 pub struct Handle {
-    ex: Arc<Executor<'static>>,
+    ctx: ExecutorContext,
 }
 
 impl Handle {
-    fn new(ex: Arc<Executor<'static>>) -> Self {
-        Self { ex }
+    fn new(ctx: ExecutorContext) -> Self {
+        Self { ctx }
     }
 
     pub fn spawn<T>(&self, future: impl Future<Output = T> + Send + 'static) -> Task<T>
     where
         T: Send + 'static,
     {
-        self.ex
-            .spawn(ExecutorContext::in_scope(self.ex.clone(), future))
+        self.ctx.ex.spawn(future)
     }
 }
 
 pub fn handle() -> Handle {
-    let ex = ExecutorContext::with(|ctx| ctx.ex.clone());
-    Handle::new(ex)
+    let ctx = BridgedExecutor::current().expect(
+        "There is no ocaml-lwt-interop executor context registered for current thread!",
+    );
+    Handle::new(ctx.as_ref().clone())
 }

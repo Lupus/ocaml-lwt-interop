@@ -1,8 +1,4 @@
-external lwti_tests_bench : unit -> unit Lwt.t = "lwti_tests_bench"
-external lwti_tests_test1 : unit -> unit Lwt.t = "lwti_tests_test1"
-external lwti_tests_test2 : (unit -> unit Lwt.t) -> unit Lwt.t = "lwti_tests_test2"
-
-let () = ignore lwti_tests_test1
+open Stubs
 
 let main_rust () =
   print_endline "";
@@ -11,7 +7,7 @@ let main_rust () =
   let pause = Lwt_unix.auto_pause 0.1 in
   let page = ref 0 in
   let rec aux x =
-    let%lwt () = lwti_tests_bench () in
+    let%lwt () = Tests.bench () in
     page := x;
     let%lwt () = pause () in
     aux (x + 1)
@@ -37,7 +33,7 @@ let main_rust_slow () =
   let page = ref 0 in
   let rec aux x =
     let%lwt () =
-      lwti_tests_test2 (fun () ->
+      Tests.test_2 (fun () ->
         page := x;
         pause ())
     in
@@ -63,7 +59,7 @@ let main_gc () =
   let page = ref 0 in
   let rec aux x =
     let%lwt () =
-      lwti_tests_test2 (fun () ->
+      Tests.test_2 (fun () ->
         Gc.full_major ();
         page := x;
         Gc.full_major ();
