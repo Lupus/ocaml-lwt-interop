@@ -1,4 +1,4 @@
-pub mod local_executor;
+pub mod bridged_executor;
 pub mod notification;
 pub mod promise;
 mod stubs;
