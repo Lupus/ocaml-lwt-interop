@@ -18,6 +18,7 @@ ocaml-gen = "0.1.5"
 highway = "1.2.0"
 tokio = { version="1.40.0", features=["rt","rt-multi-thread"] }
 ocaml-rs-smartptr = { version = "0.1.0" }
+ocaml-lwt-interop-macro = { path="macro", version = "0.1.0" }
 
 [build-dependencies]
 ocaml-build = "1.0.0-beta.4"
@@ -26,8 +27,10 @@ ocaml-build = "1.0.0-beta.4"
 
 members = [
     ".",
+    "macro",
     "rust-staticlib",
     "test-stubs",
+    "test/stubs-gen",
     "lib/stubs-gen",
 ]
 
