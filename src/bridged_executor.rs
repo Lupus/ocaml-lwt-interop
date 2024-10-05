@@ -4,21 +4,70 @@
 use crate::notification::Notification;
 use std::{
     cell::RefCell,
+    ffi::c_int,
     future::Future,
     marker::PhantomData,
     pin::Pin,
+    process::abort,
     rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Mutex, OnceLock, Weak,
+        mpsc, Arc, Mutex, OnceLock, Weak,
     },
     task::{Context, Waker},
 };
 
 use async_executor::{Executor, Task};
+use futures_lite::future::yield_now;
 use tokio::runtime::Builder;
 
 use ocaml_rs_smartptr::ptr::DynBox;
+
+extern "C" {
+    /*
+    caml_acquire_runtime_system() The calling thread re-acquires the master lock
+    and other Caml resources. It may block until no other thread uses the Caml
+    run-time system.
+    */
+    // fn caml_acquire_runtime_system();
+
+    /*
+    caml_release_runtime_system() The calling thread releases the master lock
+    and other Caml resources, enabling other threads to run Caml code in
+    parallel with the execution of the calling thread.
+    */
+    // fn caml_release_runtime_system();
+
+    /* caml_enter_blocking_section as an alias for caml_release_runtime_system */
+    fn caml_enter_blocking_section();
+
+    /* caml_leave_blocking_section as an alias for caml_acquire_runtime_system */
+    fn caml_leave_blocking_section();
+
+    /*
+    caml_c_thread_register() registers the calling thread with the Caml run-time
+    system. Returns 1 on success, 0 on error. Registering an already-register
+    thread does nothing and returns 0.
+    */
+    fn caml_c_thread_register() -> c_int;
+
+    /*
+    caml_c_thread_unregister() must be called before the thread terminates, to
+    unregister it from the Caml run-time system. Returns 1 on success, 0 on
+    error. If the calling thread was not previously registered, does nothing and
+    returns 0.
+    */
+    fn caml_c_thread_unregister() -> c_int;
+}
+
+unsafe fn caml_acquire_runtime_system() {
+    caml_leave_blocking_section();
+}
+
+unsafe fn caml_release_runtime_system() {
+    caml_enter_blocking_section();
+}
+
 
 fn global_tokio_runtime() -> Arc<tokio::runtime::Runtime> {
     static RT: OnceLock<Mutex<Weak<tokio::runtime::Runtime>>> = OnceLock::new();
@@ -33,6 +82,18 @@ fn global_tokio_runtime() -> Arc<tokio::runtime::Runtime> {
                         static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
                         let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
                         format!("olwti-tokio-worker-{}", id)
+                    })
+                    .on_thread_start(|| {
+                        if unsafe { caml_c_thread_register() } != 1 {
+                            eprintln!("caml_c_thread_register() failed!");
+                            abort()
+                        }
+                    })
+                    .on_thread_stop(|| {
+                        if unsafe { caml_c_thread_unregister() } != 1 {
+                            eprintln!("caml_c_thread_unregister() failed!");
+                            abort()
+                        }
                     })
                     .build()
                     .unwrap(),
@@ -214,4 +275,32 @@ pub fn handle() -> Handle {
         "There is no ocaml-lwt-interop executor context registered for current thread!",
     );
     Handle::new(ctx.as_ref().clone())
+}
+
+pub fn handle_from_runtime(gc: &ocaml::Runtime) -> Handle {
+    let bridged_ex = unsafe { olwti_current_executor(gc) }
+        .expect("olwti_current_executor has thrown an exception");
+    let ctx = ExecutorContext::new(bridged_ex.coerce().ex.clone());
+    Handle::new(ctx)
+}
+
+pub fn run_with_gc_lock<T: Send>(
+    handle: &Handle,
+    f: impl FnOnce(&ocaml::Runtime) -> T,
+) -> T {
+    let (sender, receiver) = mpsc::channel();
+    handle
+        .spawn(async move {
+            yield_now().await;
+            unsafe { caml_release_runtime_system() };
+            receiver.recv().unwrap();
+            unsafe { caml_acquire_runtime_system() };
+        })
+        .detach();
+    unsafe { caml_acquire_runtime_system() };
+    let gc = unsafe { ocaml::Runtime::recover_handle() };
+    sender.send(()).unwrap();
+    let res = f(&gc);
+    unsafe { caml_release_runtime_system() };
+    res
 }
