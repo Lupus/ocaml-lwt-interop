@@ -113,6 +113,30 @@ let main_lwt () =
   Lwt.return ()
 ;;
 
+let main_sync () =
+  print_endline "";
+  print_endline "running Sync func call test";
+  let start = Unix.gettimeofday () in
+  let page = ref 0 in
+  let rec aux f x =
+    let%lwt () = f x in
+    if x = 50_000 then Lwt.return () else aux f (x + 1)
+  in
+  let test p =
+    let%lwt () = Tests.test_sync_call (fun () -> page := p) in
+    Lwt.return ()
+  in
+  print_endline "running the test";
+  let%lwt () = aux test 0 in
+  let finish = Unix.gettimeofday () in
+  Printf.printf
+    "%.3f iterations per second, %d iterations total [Sync func call]\n"
+    (float_of_int !page /. (finish -. start))
+    !page;
+  print_endline "test main returning";
+  Lwt.return ()
+;;
+
 let () =
   Lwt_main.run
     (match Sys.argv with
@@ -120,6 +144,7 @@ let () =
      | [| _; "rust" |] -> main_rust ()
      | [| _; "rust-slow" |] -> main_rust_slow ()
      | [| _; "gc" |] -> main_gc ()
+     | [| _; "sync" |] -> main_sync ()
      | [| _ |] ->
        failwith "no command provided on command line - should be one of: lwt, rust, gc"
      | _ -> failwith "unknown command line arguments")

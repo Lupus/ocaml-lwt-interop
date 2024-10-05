@@ -14,6 +14,7 @@ fn main() -> std::io::Result<()> {
         ocaml_gen::decl_func!(w, env, lwti_tests_bench => "bench");
         ocaml_gen::decl_func!(w, env, lwti_tests_test1 => "test_1");
         ocaml_gen::decl_func!(w, env, lwti_tests_test2 => "test_2");
+        ocaml_gen::decl_func!(w, env, lwti_tests_test_sync_call => "test_sync_call");
     });
 
     io::stdout().write_all(w.as_bytes())?;

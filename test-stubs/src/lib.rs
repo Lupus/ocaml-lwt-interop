@@ -2,9 +2,10 @@ use async_task::Task;
 use futures_lite::future;
 use ocaml_lwt_interop::async_func::OCamlAsyncFunc;
 use ocaml_lwt_interop::bridged_executor::{
-    self, ocaml_runtime, spawn, spawn_using_runtime,
+    self, ocaml_runtime, run_with_gc_lock, spawn, spawn_using_runtime,
 };
 use ocaml_lwt_interop::promise::Promise;
+use ocaml_rs_smartptr::func::OCamlFunc;
 use tokio::time::{sleep, Duration};
 
 #[ocaml_lwt_interop::func]
@@ -52,4 +53,17 @@ pub fn lwti_tests_test2(f: OCamlAsyncFunc<(), ()>) -> () {
         });
         let () = task.await;
     });
+}
+
+#[ocaml_lwt_interop::func]
+#[ocaml_gen::func]
+#[ocaml::func]
+pub fn lwti_tests_test_sync_call(f: OCamlFunc<(), ()>) {
+    let handle = bridged_executor::handle();
+    let join_handle =
+        tokio::spawn(async move {
+            run_with_gc_lock(&handle, |gc| f.call(gc, ()));
+        });
+    join_handle.await.unwrap();
+    resolver.resolve(&ocaml_runtime(), &());
 }
