@@ -60,10 +60,9 @@ pub fn lwti_tests_test2(f: OCamlAsyncFunc<(), ()>) -> () {
 #[ocaml::func]
 pub fn lwti_tests_test_sync_call(f: OCamlFunc<(), ()>) {
     let handle = bridged_executor::handle();
-    let join_handle =
-        tokio::spawn(async move {
-            run_with_gc_lock(&handle, |gc| f.call(gc, ()));
-        });
+    let join_handle = tokio::spawn(async move {
+        run_with_gc_lock(&handle, move |gc| f.call(gc, ()));
+    });
     join_handle.await.unwrap();
     resolver.resolve(&ocaml_runtime(), &());
 }
