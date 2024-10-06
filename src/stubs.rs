@@ -1,5 +1,5 @@
 use ocaml_rs_smartptr::ml_box::MlBox;
-use ocaml_rs_smartptr::ocaml_gen_extras::{PolymorphicValue, WithTypeParam};
+use ocaml_rs_smartptr::ocaml_gen_extras::{PolymorphicValue, WithTypeParams, P1};
 use ocaml_rs_smartptr::ptr::DynBox;
 use ocaml_rs_smartptr::{register_rtti, register_type};
 
@@ -10,7 +10,7 @@ use crate::ml_box_future::MlBoxFuture;
 //////////                       Promise                             //////////
 ///////////////////////////////////////////////////////////////////////////////
 
-pub type Future = WithTypeParam<'a', DynBox<MlBoxFuture>>;
+pub type Future = WithTypeParams<P1<'a'>, DynBox<MlBoxFuture>>;
 
 #[ocaml_gen::func]
 #[ocaml::func]
