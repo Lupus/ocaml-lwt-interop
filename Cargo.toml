@@ -10,6 +10,7 @@ path = "src/lib.rs"
 [dependencies]
 thiserror = "1.0.64"
 ocaml = "1.0.1"
+static_assertions = "1.1.0"
 async-executor = "1.13"
 waker-fn = "1.2"
 futures-lite = "2.3"

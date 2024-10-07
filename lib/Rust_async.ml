@@ -32,9 +32,12 @@ end
 
 let () =
   Callback.register "olwti_lwt_task" Lwt.task;
-  Callback.register "olwti_lwt_wakeup_later" Lwt.wakeup_later;
+  Callback.register "olwti_lwt_wakeup_later" (fun resolver v ->
+    try Ok (Lwt.wakeup_later resolver v) with
+    | e -> Error ("Lwt.wakup_later failed: " ^ Printexc.to_string e));
   Callback.register "olwti_lwt_wakeup_later_exn" (fun resolver msg ->
-    Lwt.wakeup_later_exn resolver (Failure msg));
+    try Ok (Lwt.wakeup_later_exn resolver (Failure msg)) with
+    | e -> Error ("Lwt.wakup_later_exn failed: " ^ Printexc.to_string e));
   Callback.register "olwti_current_executor" (fun () ->
     let current = Runtime.current () in
     current.executor);
