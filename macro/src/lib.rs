@@ -50,12 +50,16 @@ fn func_impl(input: ItemFn) -> TokenStream2 {
     let fn_body = &input.block;
     let fn_args = &input.sig.inputs;
     let fn_ret = match &input.sig.output {
-        syn::ReturnType::Default => {
-            syn::parse2::<syn::ReturnType>(quote! { -> Promise<()> }).unwrap()
-        }
+        syn::ReturnType::Default => syn::parse2::<syn::ReturnType>(
+            quote! { -> ::ocaml_lwt_interop::promise::Promise<()> },
+        )
+        .unwrap(),
         syn::ReturnType::Type(rarrow, typ) => {
-            let new_typ = syn::parse2::<syn::Type>(quote! { Promise<#typ> }).unwrap();
-            syn::ReturnType::Type(rarrow.clone(), Box::new(new_typ))
+            let new_typ = syn::parse2::<syn::Type>(
+                quote! { ::ocaml_lwt_interop::promise::Promise<#typ> },
+            )
+            .unwrap();
+            syn::ReturnType::Type(*rarrow, Box::new(new_typ))
         }
     };
 
@@ -77,8 +81,8 @@ fn func_impl(input: ItemFn) -> TokenStream2 {
         #(#other_attrs)*
         #ocaml_func_attr
         pub fn #fn_name(#fn_args) #fn_ret {
-            let (fut, resolver) = Promise::new(gc);
-            let task = spawn_using_runtime(gc, async move {
+            let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
+            let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
                 #fn_body
             });
             task.detach();
@@ -108,9 +112,9 @@ mod tests {
 
         let expected: TokenStream2 = quote! {
             #[ocaml::func]
-            pub fn lwti_tests_bench() -> Promise<()> {
-                let (fut, resolver) = Promise::new(gc);
-                let task = spawn_using_runtime(gc, async move {
+            pub fn lwti_tests_bench() -> ::ocaml_lwt_interop::promise::Promise<()> {
+                let (fut, resolver) = Promise::ocaml_lwt_interop::promise::::new(gc);
+                let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
                     {
                         future::yield_now().await;
                         resolver.resolve(&ocaml_runtime(), &());
@@ -136,9 +140,9 @@ mod tests {
 
         let expected: TokenStream2 = quote! {
             #[ocaml::func(whatever)]
-            pub fn lwti_tests_bench() -> Promise<()> {
-                let (fut, resolver) = Promise::new(gc);
-                let task = spawn_using_runtime(gc, async move {
+            pub fn lwti_tests_bench() -> ::ocaml_lwt_interop::promise::Promise<()> {
+                let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
+                let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
                     {
                     }
                 });
@@ -160,9 +164,9 @@ mod tests {
 
         let expected: TokenStream2 = quote! {
             #[ocaml::func]
-            pub fn lwti_tests_bench(arg1: String, args2: u32) -> Promise<u64> {
-                let (fut, resolver) = Promise::new(gc);
-                let task = spawn_using_runtime(gc, async move {
+            pub fn lwti_tests_bench(arg1: String, args2: u32) -> ::ocaml_lwt_interop::promise::Promise<u64> {
+                let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
+                let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
                     {
                     }
                 });
