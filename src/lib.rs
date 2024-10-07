@@ -8,4 +8,7 @@ pub mod promise;
 pub mod stubs;
 pub mod util;
 
+#[macro_use]
+extern crate static_assertions;
+
 pub use ocaml_lwt_interop_macro::func;

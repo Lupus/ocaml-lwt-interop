@@ -1,6 +1,4 @@
-use crate::{
-    bridged_executor::ocaml_runtime, ml_box_future::MlBoxFuture, util::ExportedRoot,
-};
+use crate::{bridged_executor::ocaml_runtime, ml_box_future::MlBoxFuture};
 use highway::{HighwayHash, HighwayHasher};
 use ocaml_gen::{const_random, OCamlDesc};
 use ocaml_rs_smartptr::ml_box::MlBox;
@@ -9,14 +7,15 @@ use std::{
     future::{Future, IntoFuture},
     hash::Hash,
     marker::PhantomData,
+    panic::{AssertUnwindSafe, RefUnwindSafe, UnwindSafe},
     pin::Pin,
     task::{Context, Poll},
 };
 
 ocaml::import! {
     fn olwti_lwt_task() -> (ocaml::Value, ocaml::Value);
-    fn olwti_lwt_wakeup_later(resolver: ocaml::Value, value: ocaml::Value);
-    fn olwti_lwt_wakeup_later_exn(resolver: ocaml::Value, msg: String);
+    fn olwti_lwt_wakeup_later(resolver: ocaml::Value, value: ocaml::Value) -> Result<(),String>;
+    fn olwti_lwt_wakeup_later_exn(resolver: ocaml::Value, msg: String) -> Result<(), String>;
     fn olwti_wrap_lwt_future(fut: ocaml::Value) -> DynBox<MlBoxFuture>;
 }
 
@@ -24,28 +23,45 @@ pub struct Resolver<T>
 where
     T: ocaml::ToValue,
 {
-    resolver: ExportedRoot,
-    marker: PhantomData<T>,
+    resolver: MlBox,
+    _marker: AssertUnwindSafe<PhantomData<T>>,
 }
+
+/* As Resolver is a wraper on top of MlBox, we mark Resolver as Send + Sync as
+ * MlBox itself */
+unsafe impl<T: ocaml::ToValue> Send for Resolver<T> {}
+unsafe impl<T: ocaml::ToValue> Sync for Resolver<T> {}
+
+assert_impl_all!(Resolver<ocaml::Value>: Send, Sync, UnwindSafe, RefUnwindSafe);
 
 impl<T: ocaml::ToValue> Resolver<T> {
     pub fn resolve(self, gc: &ocaml::Runtime, v: &T) {
-        let resolver = self.resolver.into_value(gc);
+        let resolver = self.resolver.as_value(gc);
         unsafe { olwti_lwt_wakeup_later(gc, resolver, v.to_value(gc)) }
             .expect("olwti_lwt_wakeup_later has thrown an exception")
+            .unwrap()
     }
 
     pub fn reject(self, gc: &ocaml::Runtime, msg: String) {
-        let resolver = self.resolver.into_value(gc);
+        let resolver = self.resolver.as_value(gc);
         unsafe { olwti_lwt_wakeup_later_exn(gc, resolver, msg) }
             .expect("olwti_lwt_wakeup_later_exn has thrown an exception")
+            .unwrap()
     }
 }
 
+#[derive(Debug)]
 pub struct Promise<T> {
     inner: MlBox,
-    marker: PhantomData<T>,
+    _marker: AssertUnwindSafe<PhantomData<T>>,
 }
+
+/* As Promise is a wraper on top of MlBox, we mark Promise as Send + Sync as
+ * MlBox itself */
+unsafe impl<T> Send for Promise<T> {}
+unsafe impl<T> Sync for Promise<T> {}
+
+assert_impl_all!(Promise<ocaml::Value>: Send, Sync, UnwindSafe, RefUnwindSafe);
 
 impl<T> Promise<T>
 where
@@ -56,11 +72,11 @@ where
             .expect("olwti_lwt_task has thrown an exception");
         let fut: Promise<T> = Promise {
             inner: MlBox::new(gc, v_fut),
-            marker: PhantomData,
+            _marker: AssertUnwindSafe(PhantomData),
         };
         let resolver: Resolver<T> = Resolver {
-            resolver: ExportedRoot::new(gc, v_resolver),
-            marker: PhantomData,
+            resolver: MlBox::new(gc, v_resolver),
+            _marker: AssertUnwindSafe(PhantomData),
         };
         (fut, resolver)
     }
@@ -86,7 +102,7 @@ where
         let gc = unsafe { ocaml::Runtime::recover_handle() };
         Self {
             inner: MlBox::new(gc, v),
-            marker: PhantomData,
+            _marker: AssertUnwindSafe(PhantomData),
         }
     }
 }
@@ -105,7 +121,7 @@ where
 
 impl<T> OCamlDesc for Promise<T>
 where
-    T: OCamlDesc + Send,
+    T: OCamlDesc,
 {
     fn ocaml_desc(env: &::ocaml_gen::Env, generics: &[&str]) -> String {
         format!("(({}) Lwt.t)", T::ocaml_desc(env, generics))
