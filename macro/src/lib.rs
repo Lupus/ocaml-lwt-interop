@@ -83,7 +83,9 @@ fn func_impl(input: ItemFn) -> TokenStream2 {
         pub fn #fn_name(#fn_args) #fn_ret {
             let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
             let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
-                #fn_body
+                let res = #fn_body;
+                let gc = &::ocaml_lwt_interop::bridged_executor::ocaml_runtime();
+                resolver.resolve(gc, &res);
             });
             task.detach();
             fut
@@ -113,13 +115,15 @@ mod tests {
         let expected: TokenStream2 = quote! {
             #[ocaml::func]
             pub fn lwti_tests_bench() -> ::ocaml_lwt_interop::promise::Promise<()> {
-                let (fut, resolver) = Promise::ocaml_lwt_interop::promise::::new(gc);
+                let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
                 let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
-                    {
+                    let res = {
                         future::yield_now().await;
                         resolver.resolve(&ocaml_runtime(), &());
                         ()
-                    }
+                    };
+                    let gc = &::ocaml_lwt_interop::bridged_executor::ocaml_runtime();
+                    resolver.resolve(gc, &res);
                 });
                 task.detach();
                 fut
@@ -143,8 +147,9 @@ mod tests {
             pub fn lwti_tests_bench() -> ::ocaml_lwt_interop::promise::Promise<()> {
                 let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
                 let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
-                    {
-                    }
+                    let res = {};
+                    let gc = &::ocaml_lwt_interop::bridged_executor::ocaml_runtime();
+                    resolver.resolve(gc, &res);
                 });
                 task.detach();
                 fut
@@ -167,8 +172,9 @@ mod tests {
             pub fn lwti_tests_bench(arg1: String, args2: u32) -> ::ocaml_lwt_interop::promise::Promise<u64> {
                 let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
                 let task = ::ocaml_lwt_interop::bridged_executor::spawn_using_runtime(gc, async move {
-                    {
-                    }
+                    let res = {};
+                    let gc = &::ocaml_lwt_interop::bridged_executor::ocaml_runtime();
+                    resolver.resolve(gc, &res);
                 });
                 task.detach();
                 fut
