@@ -7,9 +7,13 @@
   (pps lwt_ppx)))
 
 (rule
- (targets Stubs.ml)
- (mode promote)
+ (targets Stubs.ml.new)
  (action
   (with-stdout-to
    %{targets}
    (run stubs-gen/stubs-gen))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff Stubs.ml Stubs.ml.new)))
