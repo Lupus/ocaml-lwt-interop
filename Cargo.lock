@@ -371,6 +371,7 @@ dependencies = [
  "ocaml-gen",
  "ocaml-lwt-interop-macro",
  "ocaml-rs-smartptr",
+ "static_assertions",
  "thiserror",
  "tokio",
  "waker-fn",
