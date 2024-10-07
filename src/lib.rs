@@ -6,7 +6,6 @@ pub mod ml_box_future;
 pub mod notification;
 pub mod promise;
 pub mod stubs;
-pub mod util;
 
 #[macro_use]
 extern crate static_assertions;
