@@ -1,4 +1,5 @@
 use std::future::IntoFuture;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 
 use crate::bridged_executor::ocaml_runtime;
 use crate::promise::{Promise, PromiseFuture};
@@ -6,23 +7,17 @@ use ocaml_gen::OCamlDesc;
 use ocaml_rs_smartptr::callable::Callable;
 use ocaml_rs_smartptr::func::OCamlFunc;
 
-pub struct OCamlAsyncFunc<Args: Send, Ret: Send>(OCamlFunc<Args, Promise<Ret>>);
+pub struct OCamlAsyncFunc<Args, Ret>(OCamlFunc<Args, Promise<Ret>>);
 
-impl<Args, Ret> OCamlAsyncFunc<Args, Ret>
-where
-    Args: Send,
-    Ret: Send,
-{
+assert_impl_all!(OCamlAsyncFunc<(ocaml::Value,),ocaml::Value>: Send, Sync, UnwindSafe, RefUnwindSafe);
+
+impl<Args, Ret> OCamlAsyncFunc<Args, Ret> {
     pub fn new(gc: &ocaml::Runtime, v: ocaml::Value) -> Self {
         OCamlAsyncFunc(OCamlFunc::new(gc, v))
     }
 }
 
-unsafe impl<Args, Ret> ocaml::FromValue for OCamlAsyncFunc<Args, Ret>
-where
-    Args: Send,
-    Ret: Send,
-{
+unsafe impl<Args, Ret> ocaml::FromValue for OCamlAsyncFunc<Args, Ret> {
     fn from_value(v: ocaml::Value) -> Self {
         OCamlAsyncFunc(OCamlFunc::from_value(v))
     }
@@ -30,7 +25,7 @@ where
 
 impl<Args, Ret> OCamlAsyncFunc<Args, Ret>
 where
-    Args: Callable<Promise<Ret>> + Send,
+    Args: Callable<Promise<Ret>>,
     Ret: ocaml::FromValue + Send + 'static,
     Promise<Ret>: ocaml::FromValue + OCamlDesc,
 {
