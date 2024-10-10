@@ -27,8 +27,7 @@ members = [
     "macro",
     "rust-staticlib",
     "test-stubs",
-    "test/stubs-gen",
-    "lib/stubs-gen",
+    "stubs-gen",
 ]
 
 [patch.crates-io]
