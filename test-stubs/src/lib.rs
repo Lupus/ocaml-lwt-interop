@@ -3,6 +3,7 @@ use futures_lite::future;
 use ocaml_lwt_interop::async_func::OCamlAsyncFunc;
 use ocaml_lwt_interop::bridged_executor::{self, run_with_gc_lock, spawn};
 use ocaml_rs_smartptr::func::OCamlFunc;
+use ocaml_rs_smartptr::ocaml_gen_bindings;
 use tokio::time::{sleep, Duration};
 
 #[ocaml_lwt_interop::func]
@@ -57,4 +58,17 @@ pub fn lwti_tests_test_sync_call(f: OCamlFunc<(), ()>) {
         run_with_gc_lock(&handle, move |gc| f.call(gc, ()));
     });
     join_handle.await.unwrap();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//////////               OCaml bindings generation                   //////////
+///////////////////////////////////////////////////////////////////////////////
+
+ocaml_gen_bindings! {
+    decl_module!("Tests", {
+        decl_func!(lwti_tests_bench => "bench");
+        decl_func!(lwti_tests_test1 => "test_1");
+        decl_func!(lwti_tests_test2 => "test_2");
+        decl_func!(lwti_tests_test_sync_call => "test_sync_call");
+    });
 }

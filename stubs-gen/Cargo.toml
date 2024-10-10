@@ -8,6 +8,6 @@ name = "stubs-gen"
 path = "stubs-gen.rs"
 
 [dependencies]
-ocaml-lwt-interop = { path="../.." }
-ocaml-rs-smartptr = { version="*" }
+rust-staticlib-rust-async = { path="../rust-staticlib" }
+ocaml-rs-smartptr = { version="0.1.0" }
 ocaml-gen = "*"

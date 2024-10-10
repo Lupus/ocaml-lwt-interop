@@ -1,6 +1,0 @@
-(rule
- (targets test-stubs-gen)
- (deps stubs-gen.rs)
- (locks cargo-build)
- (action
-  (run rust-staticlib-build test-stubs-gen)))
