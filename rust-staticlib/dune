@@ -8,10 +8,8 @@
    rust-staticlib-gen
    -o
    %{target}
-   --local-crate-path
-   ..
-   --extra-crate-path
-   ../test-stubs
+   --local-crate-path=..
+   --extra-crate-path=../test-stubs
    %{deps})))
 
 (rule

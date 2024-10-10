@@ -5,9 +5,10 @@
   (pps lwt_ppx)))
 
 (rule
- (targets Stubs.ml)
- (mode promote)
  (action
-  (with-stdout-to
-   %{targets}
-   (run stubs-gen/test-stubs-gen))))
+  (copy %{workspace_root}/stubs-gen/Ocaml_lwt_interop_test_stubs.ml Stubs.ml.new)))
+
+(rule
+ (alias runtest)
+ (action
+  (diff Stubs.ml Stubs.ml.new)))

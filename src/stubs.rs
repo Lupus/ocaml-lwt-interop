@@ -1,4 +1,5 @@
 use ocaml_rs_smartptr::ml_box::MlBox;
+use ocaml_rs_smartptr::ocaml_gen_bindings;
 use ocaml_rs_smartptr::ocaml_gen_extras::{PolymorphicValue, WithTypeParams, P1};
 use ocaml_rs_smartptr::ptr::DynBox;
 use ocaml_rs_smartptr::{register_rtti, register_type};
@@ -50,6 +51,10 @@ pub fn lwti_executor_run_pending(executor: Executor) {
     ex.tick();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//////////               Register Types & Traits                     //////////
+///////////////////////////////////////////////////////////////////////////////
+
 register_rtti! {
     register_type!(
         {
@@ -65,4 +70,23 @@ register_rtti! {
             object_safe_traits: [],
         }
     );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//////////               OCaml bindings generation                   //////////
+///////////////////////////////////////////////////////////////////////////////
+
+ocaml_gen_bindings! {
+    decl_module!("Future", {
+        decl_type!(Future => "t");
+        decl_func!(lwti_mlbox_future_create => "create");
+        decl_func!(lwti_mlbox_future_resolve => "resolve");
+        decl_func!(lwti_mlbox_future_reject => "reject");
+    });
+
+    decl_module!("Executor", {
+        decl_type!(Executor => "t");
+        decl_func!(lwti_executor_create => "create");
+        decl_func!(lwti_executor_run_pending => "run_pending");
+    });
 }

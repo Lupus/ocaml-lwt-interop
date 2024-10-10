@@ -14,5 +14,6 @@ ocaml = "1.0.1"
 futures-lite = "2.3"
 paste = "1.0.15"
 tokio = { version="*", features=["time"] }
+ocaml-rs-smartptr = { version = "0.1.0" }
 ocaml-lwt-interop = { path=".." }
 ocaml-gen = "*"

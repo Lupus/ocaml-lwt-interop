@@ -20,7 +20,7 @@
   (rust-staticlib
    (>= ~dev))
   (ocaml-rs-smartptr
-   (>= 0.1.9))
+   (>= 0.1.0))
   (lwt
    (and
     (>= 5.6.0)

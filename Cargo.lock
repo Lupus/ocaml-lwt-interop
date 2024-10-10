@@ -396,6 +396,7 @@ dependencies = [
  "ocaml 1.0.1",
  "ocaml-gen",
  "ocaml-lwt-interop",
+ "ocaml-rs-smartptr",
  "paste",
  "tokio",
 ]
@@ -623,8 +624,8 @@ name = "stubs-gen"
 version = "0.1.0"
 dependencies = [
  "ocaml-gen",
- "ocaml-lwt-interop",
  "ocaml-rs-smartptr",
+ "rust-staticlib-rust-async",
 ]
 
 [[package]]
@@ -659,15 +660,6 @@ dependencies = [
  "quote",
  "syn 1.0.109",
  "unicode-xid",
-]
-
-[[package]]
-name = "test-stubs-gen"
-version = "0.1.0"
-dependencies = [
- "ocaml-gen",
- "ocaml-lwt-interop-test-stubs",
- "ocaml-rs-smartptr",
 ]
 
 [[package]]
