@@ -1,7 +1,7 @@
 (library
  (name rust_async)
  (public_name rust-async)
- (libraries lwt.unix ocaml-rs-smartptr rust-staticlib)
+ (libraries lwt.unix ocaml-rs-smartptr rust-staticlib-virtual)
  (flags (-linkall))
  (preprocess
   (pps lwt_ppx)))

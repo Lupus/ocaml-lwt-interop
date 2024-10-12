@@ -1,7 +1,7 @@
 (include dune.inc)
 
 (rule
- (deps ../rust-async.opam)
+ (deps ../rust-async.opam (universe))
  (target dune.inc.gen)
  (action
   (run
