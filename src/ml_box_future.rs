@@ -7,7 +7,7 @@ use std::{
 
 use ocaml_rs_smartptr::ml_box::MlBox;
 
-// MlBoxFutureSharedState is largely based on timer future example from async book:
+// MlBoxFuture is largely based on timer future example from async book:
 // https://rust-lang.github.io/async-book/02_execution/03_wakeups.html
 
 #[derive(Debug)]

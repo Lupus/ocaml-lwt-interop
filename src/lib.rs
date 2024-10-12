@@ -1,6 +1,6 @@
 pub mod async_func;
-pub mod bridged_executor;
 mod caml_runtime;
+pub mod domain_executor;
 pub mod error;
 pub mod ml_box_future;
 pub mod notification;

@@ -1,7 +1,7 @@
 use std::future::IntoFuture;
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
-use crate::bridged_executor::ocaml_runtime;
+use crate::domain_executor::ocaml_runtime;
 use crate::promise::{Promise, PromiseFuture};
 use ocaml_gen::OCamlDesc;
 use ocaml_rs_smartptr::callable::Callable;

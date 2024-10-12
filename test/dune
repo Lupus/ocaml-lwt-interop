@@ -6,7 +6,9 @@
 
 (rule
  (action
-  (copy %{workspace_root}/stubs-gen/Ocaml_lwt_interop_test_stubs.ml Stubs.ml.new)))
+  (copy
+   %{workspace_root}/stubs-gen/Ocaml_lwt_interop_test_stubs.ml
+   Stubs.ml.new)))
 
 (rule
  (alias runtest)
