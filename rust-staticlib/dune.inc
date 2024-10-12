@@ -66,6 +66,15 @@
   (with-stdout-to %{target}
    (echo "(%{deps})"))))
 
+; Below alias is handy if you want to depend on changes to any Rust/Cargo
+; sources in your project, you can safely depend on it outside of this subdir
+
+(alias
+ (name rust-universe)
+ (deps
+  (include rust-deps.inc) ; depend on all Rust bits in your project
+  (alias populate-rust-staticlib))) ; and on Rust staticlib generation
+
 ; Below rule actually compiles Rust staticlib, using a wrapper tool which
 ; invokes cargo and copies the resulting artifacts into current directory.
 ; Cargo has a flag to do that on its own, but it's still unstable.
@@ -74,13 +83,14 @@
 (rule
  (targets librust_staticlib_rust_async.a dllrust_staticlib_rust_async.so)
  (deps
-  (include rust-deps.inc) ; depend on all Rust bits in your project
-                          ; this allows not to run Cargo build each time,
-                          ; as it will stil do the static linking, which is slow
-  (alias populate-rust-staticlib)) ; wait for crate generation to complete
+  (alias rust-universe) ; rebuild only if Rust bits change, linking is slow
+  Cargo.toml)
  (locks cargo-build)
  (action
-  (run rust-staticlib-build rust-staticlib-rust-async)))
+  (run dune-cargo-build
+   --profile=%{profile}
+   --workspace-root=%{workspace_root}
+   ./Cargo.toml)))
 
 ; This library is deliberately very lightweight from OCaml perspective. It's
 ; only purpose is to drag Rust stubs static lib into the final executable
@@ -101,6 +111,6 @@
  (name rust_async_stubs)
  (foreign_archives rust_staticlib_rust_async) ; link Rust bits into the final executable
  (modules Rust_staticlib) ; generated virtual lib implementation
- (implements rust-staticlib) ; mark this lib as the one implementing rust-staticlib
+ (implements rust-staticlib-virtual) ; mark this lib as the one implementing rust-staticlib
  (c_library_flags
   (-lpthread -lc -lm)))
