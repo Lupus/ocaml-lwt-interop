@@ -1,9 +1,11 @@
 (rule
  (targets stubs-gen)
- (deps stubs-gen.rs)
+ (deps
+  stubs-gen.rs
+  (alias %{workspace_root}/rust-staticlib/rust-universe))
  (locks cargo-build)
  (action
-  (run rust-staticlib-build stubs-gen)))
+  (run dune-cargo-build stubs-gen)))
 
 (rule
  (targets Ocaml_lwt_interop.ml Ocaml_lwt_interop_test_stubs.ml)
