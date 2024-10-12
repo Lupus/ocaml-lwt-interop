@@ -4,7 +4,7 @@ use ocaml_rs_smartptr::ocaml_gen_extras::{PolymorphicValue, WithTypeParams, P1};
 use ocaml_rs_smartptr::ptr::DynBox;
 use ocaml_rs_smartptr::{register_rtti, register_type};
 
-use crate::bridged_executor::BridgedExecutor;
+use crate::domain_executor::DomainExecutor;
 use crate::ml_box_future::MlBoxFuture;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -35,12 +35,12 @@ pub fn lwti_mlbox_future_reject(fut: Future, msg: String) {
 //////////                      Executor                             //////////
 ///////////////////////////////////////////////////////////////////////////////
 
-pub type Executor = DynBox<BridgedExecutor>;
+pub type Executor = DynBox<DomainExecutor>;
 
 #[ocaml_gen::func]
 #[ocaml::func]
 pub fn lwti_executor_create(notify_id: isize) -> Executor {
-    let executor = BridgedExecutor::new(crate::notification::Notification(notify_id));
+    let executor = DomainExecutor::new(crate::notification::Notification(notify_id));
     DynBox::new_shared(executor)
 }
 
@@ -58,7 +58,7 @@ pub fn lwti_executor_run_pending(executor: Executor) {
 register_rtti! {
     register_type!(
         {
-            ty: crate::bridged_executor::BridgedExecutor,
+            ty: crate::domain_executor::DomainExecutor,
             marker_traits: [core::marker::Sync, core::marker::Send],
             object_safe_traits: [],
         }

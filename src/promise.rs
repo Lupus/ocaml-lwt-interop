@@ -1,4 +1,4 @@
-use crate::{bridged_executor::ocaml_runtime, ml_box_future::MlBoxFuture};
+use crate::{domain_executor::ocaml_runtime, ml_box_future::MlBoxFuture};
 use highway::{HighwayHash, HighwayHasher};
 use ocaml_gen::{const_random, OCamlDesc};
 use ocaml_rs_smartptr::ml_box::MlBox;
