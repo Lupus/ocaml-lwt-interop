@@ -1,7 +1,7 @@
 use async_task::Task;
 use futures_lite::future;
 use ocaml_lwt_interop::async_func::OCamlAsyncFunc;
-use ocaml_lwt_interop::bridged_executor::{self, run_with_gc_lock, spawn};
+use ocaml_lwt_interop::domain_executor::{self, run_in_ocaml_domain, spawn};
 use ocaml_rs_smartptr::func::OCamlFunc;
 use ocaml_rs_smartptr::ocaml_gen_bindings;
 use tokio::time::{sleep, Duration};
@@ -30,7 +30,7 @@ pub fn lwti_tests_test2(f: OCamlAsyncFunc<(), ()>) -> () {
         f.call(()).await.map_err(|e| e.to_string())?;
         Ok(())
     });
-    let handle = bridged_executor::handle();
+    let handle = domain_executor::handle();
     future::yield_now().await;
     let join_handle = tokio::spawn(async move {
         sleep(Duration::from_secs(0)).await;
@@ -53,9 +53,9 @@ pub fn lwti_tests_test2(f: OCamlAsyncFunc<(), ()>) -> () {
 #[ocaml_gen::func]
 #[ocaml::func]
 pub fn lwti_tests_test_sync_call(f: OCamlFunc<(), ()>) {
-    let handle = bridged_executor::handle();
+    let handle = domain_executor::handle();
     let join_handle = tokio::spawn(async move {
-        run_with_gc_lock(&handle, move |gc| f.call(gc, ()));
+        run_in_ocaml_domain(&handle, move |gc| f.call(gc, ()));
     });
     join_handle.await.unwrap();
 }

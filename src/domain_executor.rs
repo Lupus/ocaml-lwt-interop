@@ -36,8 +36,8 @@ fn global_tokio_runtime() -> Arc<tokio::runtime::Runtime> {
                         let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
                         format!("olwti-tokio-worker-{}", id)
                     })
-                    .on_thread_start(|| caml_runtime::register_thread())
-                    .on_thread_stop(|| caml_runtime::unregister_thread())
+                    .on_thread_start(caml_runtime::register_thread)
+                    .on_thread_stop(caml_runtime::unregister_thread)
                     .build()
                     .unwrap(),
             );
@@ -48,15 +48,15 @@ fn global_tokio_runtime() -> Arc<tokio::runtime::Runtime> {
 }
 
 ocaml::import! {
-    fn olwti_current_executor() -> DynBox<BridgedExecutor>;
+    fn olwti_current_executor() -> DynBox<DomainExecutor>;
 }
 
-pub struct LwtExecutorBridge {
+pub struct DomainExecutorDriver {
     fut: Pin<Box<dyn Future<Output = ()> + Sync + Send + 'static>>,
     waker: Waker,
 }
 
-impl LwtExecutorBridge {
+impl DomainExecutorDriver {
     fn new(ex: Arc<Executor<'static>>, notification: Notification) -> Self {
         let waker = waker_fn::waker_fn(move || notification.send());
         Self {
@@ -74,22 +74,22 @@ impl LwtExecutorBridge {
 }
 
 #[derive(Clone)]
-struct ExecutorContext {
-    ex: Arc<Executor<'static>>,
+struct DomainExecutorContext {
+    executor: Arc<Executor<'static>>,
 }
 
-impl ExecutorContext {
-    fn new(ex: Arc<Executor<'static>>) -> Self {
-        Self { ex }
+impl DomainExecutorContext {
+    fn new(executor: Arc<Executor<'static>>) -> Self {
+        Self { executor }
     }
 }
 
 thread_local! {
-    static EXECUTOR_STACK: RefCell<Vec<Rc<ExecutorContext>>> = const { RefCell::new(Vec::new()) };
+    static EXECUTOR_STACK: RefCell<Vec<Rc<DomainExecutorContext>>> = const { RefCell::new(Vec::new()) };
 }
 
 pub struct ExecutorGuard {
-    ex_ctx: Rc<ExecutorContext>,
+    executor_context: Rc<DomainExecutorContext>,
 }
 
 impl Drop for ExecutorGuard {
@@ -98,29 +98,34 @@ impl Drop for ExecutorGuard {
             let mut stack = stack.borrow_mut();
             assert!(stack
                 .last()
-                .map_or(false, |ex_ctx| Rc::ptr_eq(ex_ctx, &self.ex_ctx)));
+                .map_or(false, |ex_ctx| Rc::ptr_eq(ex_ctx, &self.executor_context)));
             stack.pop();
         });
     }
 }
 
-pub struct BridgedExecutor {
-    pub ex: Arc<Executor<'static>>,
-    pub bridge: Mutex<LwtExecutorBridge>,
-    pub rt: Arc<tokio::runtime::Runtime>,
+pub struct DomainExecutor {
+    pub executor: Arc<Executor<'static>>,
+    pub driver: Mutex<DomainExecutorDriver>,
+    pub runtime: Arc<tokio::runtime::Runtime>,
 }
 
-impl BridgedExecutor {
-    pub fn new(notification: Notification) -> BridgedExecutor {
-        let ex = Arc::new(Executor::new());
-        let bridge = Mutex::new(LwtExecutorBridge::new(ex.clone(), notification));
-        let rt = global_tokio_runtime();
-        BridgedExecutor { ex, bridge, rt }
+impl DomainExecutor {
+    pub fn new(notification: Notification) -> DomainExecutor {
+        let executor = Arc::new(Executor::new());
+        let driver =
+            Mutex::new(DomainExecutorDriver::new(executor.clone(), notification));
+        let runtime = global_tokio_runtime();
+        DomainExecutor {
+            executor,
+            driver,
+            runtime,
+        }
     }
 
     pub fn tick(&self) {
-        let mut bridge = self.bridge.lock().unwrap();
-        let _guard = self.rt.enter();
+        let mut bridge = self.driver.lock().unwrap();
+        let _guard = self.runtime.enter();
         let _self_guard = self.enter();
         bridge.tick();
     }
@@ -129,18 +134,18 @@ impl BridgedExecutor {
     where
         T: Send + 'static,
     {
-        self.ex.spawn(future)
+        self.executor.spawn(future)
     }
 
     pub fn enter(&self) -> ExecutorGuard {
-        let ex_ctx = Rc::new(ExecutorContext::new(self.ex.clone()));
+        let executor_context = Rc::new(DomainExecutorContext::new(self.executor.clone()));
         EXECUTOR_STACK.with(|stack| {
-            stack.borrow_mut().push(ex_ctx.clone());
+            stack.borrow_mut().push(executor_context.clone());
         });
-        ExecutorGuard { ex_ctx }
+        ExecutorGuard { executor_context }
     }
 
-    fn current() -> Option<Rc<ExecutorContext>> {
+    fn current() -> Option<Rc<DomainExecutorContext>> {
         EXECUTOR_STACK.with(|stack| stack.borrow().last().cloned())
     }
 }
@@ -149,10 +154,10 @@ pub fn spawn<T>(future: impl Future<Output = T> + Send + 'static) -> Task<T>
 where
     T: Send + 'static,
 {
-    let ctx = BridgedExecutor::current().expect(
+    let ctx = DomainExecutor::current().expect(
         "There is no ocaml-lwt-interop executor context registered for current thread!",
     );
-    ctx.ex.spawn(future)
+    ctx.executor.spawn(future)
 }
 
 pub fn tokio_rt() -> Arc<tokio::runtime::Runtime> {
@@ -175,7 +180,7 @@ impl<'a> std::ops::Deref for OcamlRuntimeGuard<'a> {
 pub fn ocaml_runtime<'a>() -> OcamlRuntimeGuard<'a> {
     /* Ensure we're running in a task which is driven by our executor (which is
      * in turn `tick`-ed only from the same OCaml domain) */
-    let _ctx = BridgedExecutor::current().expect(
+    let _ctx = DomainExecutor::current().expect(
         "Can't obtain OCaml runtime handle when running outside of ocaml-lwt-interop executor context!",
     );
     OcamlRuntimeGuard {
@@ -184,7 +189,7 @@ pub fn ocaml_runtime<'a>() -> OcamlRuntimeGuard<'a> {
     }
 }
 
-pub fn spawn_using_runtime<T>(
+pub fn spawn_with_runtime<T>(
     gc: &ocaml::Runtime,
     future: impl Future<Output = T> + Send + 'static,
 ) -> Task<T>
@@ -197,11 +202,11 @@ where
 }
 
 pub struct Handle {
-    ctx: ExecutorContext,
+    ctx: DomainExecutorContext,
 }
 
 impl Handle {
-    fn new(ctx: ExecutorContext) -> Self {
+    fn new(ctx: DomainExecutorContext) -> Self {
         Self { ctx }
     }
 
@@ -209,25 +214,25 @@ impl Handle {
     where
         T: Send + 'static,
     {
-        self.ctx.ex.spawn(future)
+        self.ctx.executor.spawn(future)
     }
 }
 
 pub fn handle() -> Handle {
-    let ctx = BridgedExecutor::current().expect(
+    let ctx = DomainExecutor::current().expect(
         "There is no ocaml-lwt-interop executor context registered for current thread!",
     );
     Handle::new(ctx.as_ref().clone())
 }
 
 pub fn handle_from_runtime(gc: &ocaml::Runtime) -> Handle {
-    let bridged_ex = unsafe { olwti_current_executor(gc) }
+    let domain_executor = unsafe { olwti_current_executor(gc) }
         .expect("olwti_current_executor has thrown an exception");
-    let ctx = ExecutorContext::new(bridged_ex.coerce().ex.clone());
+    let ctx = DomainExecutorContext::new(domain_executor.coerce().executor.clone());
     Handle::new(ctx)
 }
 
-pub fn run_with_gc_lock<T: Send>(
+pub fn run_in_ocaml_domain<T: Send>(
     handle: &Handle,
     f: impl FnOnce(&ocaml::Runtime) -> T + UnwindSafe,
 ) -> T {

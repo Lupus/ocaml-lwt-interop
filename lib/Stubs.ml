@@ -8,7 +8,7 @@ end
 
 
 module Executor = struct 
-  type nonrec t = [ `Ocaml_lwt_interop_bridged_executor_bridged_executor|`Core_marker_sync|`Core_marker_send ] Ocaml_rs_smartptr.Rusty_obj.t
+  type nonrec t = [ `Ocaml_lwt_interop_domain_executor_domain_executor|`Core_marker_sync|`Core_marker_send ] Ocaml_rs_smartptr.Rusty_obj.t
   external create : int -> t = "lwti_executor_create"
   external run_pending : t -> unit = "lwti_executor_run_pending"
 end
