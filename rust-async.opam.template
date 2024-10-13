@@ -3,3 +3,6 @@
 # containing such extension fields and combine a full set of Rust crate
 # dependencies for a given opam file.
 x-rust-stubs-crate: "ocaml-lwt-interop"
+pin-depends: [
+  ["ocaml-rs-smartptr.0.1.0" "git+https://github.com/Lupus/ocaml-rs-smartptr.git"]
+]
