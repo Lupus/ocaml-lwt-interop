@@ -18,7 +18,15 @@
   dune
   conf-rust-2021
   (rust-staticlib
-   (>= ~dev))
+   (and
+    (>= 0.2.0)
+    :with-test))
+  (rust-staticlib-virtual
+   (>= 0.2.0))
+  (dune-cargo-build
+   (and
+    (>= 0.2.0)
+    :build))
   (ocaml-rs-smartptr
    (>= 0.1.0))
   (lwt
