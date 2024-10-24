@@ -146,6 +146,8 @@ pub struct PromiseFuture<T> {
     state: PromiseFutureState<T>,
 }
 
+assert_impl_all!(PromiseFuture<()>: Send, Unpin);
+
 enum PromiseFutureState<T> {
     NotStarted,
     Running(Pin<Box<dyn Future<Output = Result<T, crate::error::Error>> + Send>>),
@@ -170,8 +172,8 @@ where
 {
     type Output = Result<T, crate::error::Error>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = unsafe { self.as_mut().get_unchecked_mut() };
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.get_mut();
 
         loop {
             match &mut this.state {
