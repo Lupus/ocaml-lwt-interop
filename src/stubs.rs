@@ -1,68 +1,92 @@
-use crate::local_executor;
-use crate::ptr::{CamlRef, CamlRet};
-use crate::util::{ambient_gc, ensure_rooted_value};
+use ocaml_rs_smartptr::ml_box::MlBox;
+use ocaml_rs_smartptr::ocaml_gen_bindings;
+use ocaml_rs_smartptr::ocaml_gen_extras::{PolymorphicValue, WithTypeParams, P1};
+use ocaml_rs_smartptr::ptr::DynBox;
+use ocaml_rs_smartptr::{register_rtti, register_type};
+
+use crate::domain_executor::DomainExecutor;
+use crate::ml_box_future::MlBoxFuture;
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                       Promise                             //////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#[ocaml::sig]
-type Promise<T> = crate::promise::Promise<T>;
+pub type Future = WithTypeParams<P1<'a'>, DynBox<MlBoxFuture>>;
 
+#[ocaml_gen::func]
 #[ocaml::func]
-#[ocaml::sig("unit -> promise")]
-pub fn lwti_promise_create() -> CamlRef<Promise<()>> {
-    Promise::<()>::new().into()
+pub fn lwti_mlbox_future_create() -> Future {
+    MlBoxFuture::new().into()
 }
 
+#[ocaml_gen::func]
 #[ocaml::func]
-#[ocaml::sig("promise -> 'a -> unit")]
-pub fn lwti_promise_resolve(promise: CamlRef<Promise<()>>, value: ocaml::Value) {
-    let value = ensure_rooted_value(value);
-    promise.resolve(value)
+pub fn lwti_mlbox_future_resolve(fut: Future, value: PolymorphicValue<'a'>) {
+    fut.coerce().resolve(MlBox::new(gc, value.into()));
 }
 
+#[ocaml_gen::func]
 #[ocaml::func]
-#[ocaml::sig("promise -> exn -> unit")]
-pub fn lwti_promise_reject(promise: CamlRef<Promise<()>>, exn: ocaml::Value) {
-    let exn = ensure_rooted_value(exn);
-    promise.reject(exn)
+pub fn lwti_mlbox_future_reject(fut: Future, msg: String) {
+    fut.coerce().reject(msg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////                      Executor                             //////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#[ocaml::sig]
-type Executor = local_executor::LocalExecutor;
+pub type Executor = DynBox<DomainExecutor>;
 
+#[ocaml_gen::func]
 #[ocaml::func]
-#[ocaml::sig("int -> executor")]
-pub fn lwti_executor_create(notify_id: isize) -> CamlRet<Executor> {
-    let mut executor = Executor::new();
-    executor.set_notifier(crate::notification::Notification(notify_id));
-    executor.into()
+pub fn lwti_executor_create(notify_id: isize) -> Executor {
+    let executor = DomainExecutor::new(crate::notification::Notification(notify_id));
+    DynBox::new_shared(executor)
 }
 
+#[ocaml_gen::func]
 #[ocaml::func]
-#[ocaml::sig("executor -> unit")]
-pub fn lwti_executor_run_pending(executor: CamlRef<Executor>) {
-    while executor.try_tick() {}
+pub fn lwti_executor_run_pending(executor: Executor) {
+    let ex = executor.coerce();
+    ex.tick();
 }
 
-#[ocaml::func]
-#[ocaml::sig("executor -> (int -> promise) -> unit")]
-pub fn lwti_executor_test(executor: CamlRef<Executor>, f: ocaml::Value) {
-    let f = ensure_rooted_value(f);
+///////////////////////////////////////////////////////////////////////////////
+//////////               Register Types & Traits                     //////////
+///////////////////////////////////////////////////////////////////////////////
 
-    let task = executor.spawn(async move {
-        let mut page_nb = 0;
-        let gc = ambient_gc();
-        let f_callable = ocaml::function!(f, (n: ocaml::Int) -> CamlRef<Promise<()>>);
-        loop {
-            f_callable(gc, &page_nb).unwrap().clone().await.unwrap();
-            page_nb += 1;
+register_rtti! {
+    register_type!(
+        {
+            ty: crate::domain_executor::DomainExecutor,
+            marker_traits: [core::marker::Sync, core::marker::Send],
+            object_safe_traits: [],
         }
+    );
+    register_type!(
+        {
+            ty: crate::ml_box_future::MlBoxFuture,
+            marker_traits: [core::marker::Sync, core::marker::Send],
+            object_safe_traits: [],
+        }
+    );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//////////               OCaml bindings generation                   //////////
+///////////////////////////////////////////////////////////////////////////////
+
+ocaml_gen_bindings! {
+    decl_module!("Future", {
+        decl_type!(Future => "t");
+        decl_func!(lwti_mlbox_future_create => "create");
+        decl_func!(lwti_mlbox_future_resolve => "resolve");
+        decl_func!(lwti_mlbox_future_reject => "reject");
     });
-    task.detach();
+
+    decl_module!("Executor", {
+        decl_type!(Executor => "t");
+        decl_func!(lwti_executor_create => "create");
+        decl_func!(lwti_executor_run_pending => "run_pending");
+    });
 }

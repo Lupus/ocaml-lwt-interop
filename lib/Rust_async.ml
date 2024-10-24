@@ -1,42 +1,51 @@
-module Promise = struct
-  type 'a t = Stubs.promise
-
-  let create () = Stubs.lwti_promise_create ()
-
-  let of_lwt fut =
-    let p = create () in
-    Lwt.on_any
-      fut
-      (fun value -> Stubs.lwti_promise_resolve p value)
-      (fun exn -> Stubs.lwti_promise_reject p exn);
-    p
-  ;;
-end
-
 module Runtime = struct
   type t =
-    { executor : Stubs.executor
+    { executor : Stubs.Executor.t
     ; notification : int
     }
 
+  (* For OCaml 5 this should be domain-local storage, for OCaml 4 global ref is
+     fine, as in OCaml 4 there's only one domain *)
+  let current = ref None
+
   let create () =
     let notification = Lwt_unix.make_notification ~once:false Fun.id in
-    let executor = Stubs.lwti_executor_create notification in
-    Lwt_unix.set_notification notification (fun () ->
-      Stubs.lwti_executor_run_pending executor);
-    { executor; notification }
+    let executor = Stubs.Executor.create notification in
+    Lwt_unix.set_notification notification (fun () -> Stubs.Executor.run_pending executor);
+    Stubs.Executor.run_pending executor;
+    let t = { executor; notification } in
+    Gc.finalise
+      (fun { executor = _; notification } -> Lwt_unix.stop_notification notification)
+      t;
+    t
   ;;
 
-  let test t ~f = Stubs.lwti_executor_test t.executor f
-
-  let destroy t =
-    Lwt_unix.stop_notification t.notification;
-    Lwt.return ()
+  let current () =
+    match !current with
+    | Some executor -> executor
+    | None ->
+      let executor = create () in
+      current := Some executor;
+      executor
   ;;
-
-  module Private = struct
-    type rust_executor = Stubs.executor
-
-    let rust_executor_of_t { executor; _ } = executor
-  end
 end
+
+let () =
+  Callback.register "olwti_lwt_task" Lwt.task;
+  Callback.register "olwti_lwt_wakeup_later" (fun resolver v ->
+    try Ok (Lwt.wakeup_later resolver v) with
+    | e -> Error ("Lwt.wakup_later failed: " ^ Printexc.to_string e));
+  Callback.register "olwti_lwt_wakeup_later_exn" (fun resolver msg ->
+    try Ok (Lwt.wakeup_later_exn resolver (Failure msg)) with
+    | e -> Error ("Lwt.wakup_later_exn failed: " ^ Printexc.to_string e));
+  Callback.register "olwti_current_executor" (fun () ->
+    let current = Runtime.current () in
+    current.executor);
+  Callback.register "olwti_wrap_lwt_future" (fun fut ->
+    let wrapper = Stubs.Future.create () in
+    Lwt.on_any
+      fut
+      (fun value -> Stubs.Future.resolve wrapper value)
+      (fun exn -> Stubs.Future.reject wrapper (Printexc.to_string exn));
+    wrapper)
+;;

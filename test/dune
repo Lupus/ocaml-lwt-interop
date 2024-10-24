@@ -3,3 +3,14 @@
  (libraries unix lwt.unix rust-async rust_async_stubs)
  (preprocess
   (pps lwt_ppx)))
+
+(rule
+ (action
+  (copy
+   %{workspace_root}/stubs-gen/Ocaml_lwt_interop_test_stubs.ml
+   Stubs.ml.new)))
+
+(rule
+ (alias runtest)
+ (action
+  (diff Stubs.ml Stubs.ml.new)))

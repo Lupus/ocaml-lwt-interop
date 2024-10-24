@@ -7,6 +7,7 @@
 (package
  (name rust-async)
  (synopsis "Interop between OCaml Lwt and Rust async")
+ (license "Apache License 2.0")
  (maintainers "Konstantin Olkhovskiy <lupus@oxnull.net>")
  (authors "The OCaml Lwt Interop contributors")
  (homepage "https://github.com/Lupus/ocaml-lwt-interop")
@@ -16,6 +17,18 @@
    (< 5.0.0))
   dune
   conf-rust-2021
+  (rust-staticlib
+   (and
+    (>= 0.2.0)
+    :with-test))
+  (rust-staticlib-virtual
+   (>= 0.2.0))
+  (dune-cargo-build
+   (and
+    (>= 0.2.0)
+    :build))
+  (ocaml-rs-smartptr
+   (>= 0.1.0))
   (lwt
    (and
     (>= 5.6.0)

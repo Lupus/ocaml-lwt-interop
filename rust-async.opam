@@ -3,12 +3,17 @@ opam-version: "2.0"
 synopsis: "Interop between OCaml Lwt and Rust async"
 maintainer: ["Konstantin Olkhovskiy <lupus@oxnull.net>"]
 authors: ["The OCaml Lwt Interop contributors"]
+license: "Apache License 2.0"
 homepage: "https://github.com/Lupus/ocaml-lwt-interop"
 bug-reports: "https://github.com/Lupus/ocaml-lwt-interop/issues"
 depends: [
   "ocaml" {< "5.0.0"}
   "dune" {>= "3.7"}
   "conf-rust-2021"
+  "rust-staticlib" {>= "0.2.0" & with-test}
+  "rust-staticlib-virtual" {>= "0.2.0"}
+  "dune-cargo-build" {>= "0.2.0" & build}
+  "ocaml-rs-smartptr" {>= "0.1.0"}
   "lwt" {>= "5.6.0" & < "5.7.0"}
   "lwt_ppx" {>= "2.1.0" & < "2.2.0"}
   "ocamlformat" {with-test & >= "0.25.1" & < "0.26.0"}
@@ -33,3 +38,6 @@ build: [
 # containing such extension fields and combine a full set of Rust crate
 # dependencies for a given opam file.
 x-rust-stubs-crate: "ocaml-lwt-interop"
+pin-depends: [
+  ["ocaml-rs-smartptr.0.1.0" "git+https://github.com/Lupus/ocaml-rs-smartptr.git"]
+]

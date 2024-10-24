@@ -1,0 +1,18 @@
+(include dune.inc)
+
+(rule
+ (deps ../rust-async.opam (universe))
+ (target dune.inc.gen)
+ (action
+  (run
+   rust-staticlib-gen
+   -o
+   %{target}
+   --local-crate-path=..
+   --extra-crate-path=../test-stubs
+   %{deps})))
+
+(rule
+ (alias runtest)
+ (action
+  (diff dune.inc dune.inc.gen)))

@@ -1,0 +1,13 @@
+[package]
+name = "stubs-gen"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stubs-gen"
+path = "stubs-gen.rs"
+
+[dependencies]
+rust-staticlib-rust-async = { path="../rust-staticlib" }
+ocaml-rs-smartptr = { version="0.1.0" }
+ocaml-gen = "*"

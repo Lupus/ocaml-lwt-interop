@@ -1,2 +1,3 @@
-lib/stubs.ml
-lib/stubs.mli
+lib/Stubs.ml
+test/Stubs.ml
+
