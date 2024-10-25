@@ -2,46 +2,21 @@
 
 **WARNING**: Highly experimental code, do not use in production!
 
-This project tries to solve the problem of interop between asynchronous OCaml
-(Lwt flavour) and asynchronous Rust.
+This project aims to solve the problem of interop between asynchronous OCaml (Lwt flavor) and asynchronous Rust.
 
 ## Architecture
 
-### Thread-local Rust executor
+### Domain Executor
 
-Thread-local Rust executor is running on the same thread as OCaml and notifies Lwt
-event loop that it has Rust async tasks to run via Lwt_unix notification
-mechanism. Rust tasks can be woken up by other threads, so task queue in
-thread-local executor is actually thread-safe, and so is Lwt_unix notifcation.
+The `DomainExecutor` runs within an OCaml domain and integrates Rust async tasks with the OCaml runtime. It uses the `async_executor` crate to manage async tasks and integrates with the `tokio` runtime for asynchronous I/O operations. The executor ensures that the OCaml runtime lock is properly managed during task execution.
 
-Callback that is registered to Lwt_unix notification instructs the thread-local executor to run all tasks that are currently ready to be run (i.e. the executor won't block the Lwt event loop waiting for more tasks to becore ready).
+### Rust `Promise` and `Future` Integration
 
-Lwt event loop and Rust thread-local executor cooperatively push their
-futures/tasks/promises forward, making progress in the whole hybrid async
-application. An example of such interaction is depicted in [test scenario
-section](#test-scenario).
+To bridge OCaml's Lwt promises with Rust's async/await syntax, the project provides a `Promise` type that implements Rust's `Future` trait. This allows Rust code to await OCaml promises asynchronously. The OCaml side can create a promise, return it to Rust, and later resolve or reject it with a value. The value is stored in the `Promise`, and when a Rust task polls this `Promise`, it will get the value back or be woken up if the value is not yet available.
 
-Thread-local executor can be found in
-[src/local_executor.rs](src/local_executor.rs)
+## Test Scenario
 
-### Rust `Future` adapter for Lwt promises
-
-Asynchronous tasks in Rust running cooperatively with Lwt event loop are nice,
-but not quite practical if we can't wait for `'a Lwt.t` values inside those Rust
-tasks.
-
-To solve this problem, there is a `Promise` Rust type, that implements `Future`
-trait, and thus can be awaited in Rust async tasks. OCaml side can create it,
-return it to Rust, and then after some time asynchronously resolve or reject it
-with some value. That value is stored in `Promise`, and next time some task
-polls this `Promise`, it will get this value back (or `Promise` will wake up
-corresponding `Waker` if some task polled before we've put some value inside).
-
-## Test scenario
-
-Test scenario can be found in `test/test.ml`. It passes Lwt-enabled callback
-into Rust async task, that executes the callback, waits till it completes and
-then loops over calling it again.
+The test scenario can be found in `test/test.ml`. It passes an Lwt-enabled callback into a Rust async task, which executes the callback, waits for it to complete, and then loops over calling it again.
 
 ```mermaid
 sequenceDiagram
@@ -107,5 +82,4 @@ note left of task: Promise .await completed
 deactivate lwt_loop
 
 end
-
 ```
