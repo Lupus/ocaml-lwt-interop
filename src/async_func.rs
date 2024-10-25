@@ -1,3 +1,5 @@
+//! An extension on top of `OCamlFunc` for asynchronous functions
+
 use std::future::IntoFuture;
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
@@ -7,11 +9,16 @@ use ocaml_gen::OCamlDesc;
 use ocaml_rs_smartptr::callable::Callable;
 use ocaml_rs_smartptr::func::OCamlFunc;
 
+/// An extension on top of `OCamlFunc` for asynchronous functions, i.e. if
+/// `OCamlFunc` wraps some OCaml function returning the value itself,
+/// `OCamlAsyncFunc` wraps OCaml function that wraps `'a Lwt.t`, i.e. returns a
+/// promise which will eventually resolve to a value.
 pub struct OCamlAsyncFunc<Args, Ret>(OCamlFunc<Args, Promise<Ret>>);
 
 assert_impl_all!(OCamlAsyncFunc<(ocaml::Value,),ocaml::Value>: Send, Sync, UnwindSafe, RefUnwindSafe);
 
 impl<Args, Ret> OCamlAsyncFunc<Args, Ret> {
+    /// Creates a new OCamlAsyncFunc out of `v`.
     pub fn new(gc: &ocaml::Runtime, v: ocaml::Value) -> Self {
         OCamlAsyncFunc(OCamlFunc::new(gc, v))
     }
@@ -29,6 +36,8 @@ where
     Ret: ocaml::FromValue + Send + 'static,
     Promise<Ret>: ocaml::FromValue + OCamlDesc,
 {
+    /// Calls inner OCamlFunc, assuming it's return value is `'a Lwt.t`,
+    /// converts result into `PromiseFuture`
     pub fn call(&self, args: Args) -> PromiseFuture<Ret> {
         let gc = ocaml_runtime();
         let fut = self.0.call(&gc, args);

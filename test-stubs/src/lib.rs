@@ -55,7 +55,7 @@ pub fn lwti_tests_test2(f: OCamlAsyncFunc<(), ()>) -> () {
 pub fn lwti_tests_test_sync_call(f: OCamlFunc<(), ()>) {
     let handle = domain_executor::handle();
     let join_handle = tokio::spawn(async move {
-        run_in_ocaml_domain(&handle, move |gc| f.call(gc, ()));
+        unsafe { run_in_ocaml_domain(&handle, move |gc| f.call(gc, ())) };
     });
     join_handle.await.unwrap();
 }

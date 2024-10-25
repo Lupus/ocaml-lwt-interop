@@ -31,6 +31,7 @@ module Runtime = struct
 end
 
 let () =
+  (* Below callbacks are used in ../src/promise.rs and ../src/domain_executor.rs *)
   Callback.register "olwti_lwt_task" Lwt.task;
   Callback.register "olwti_lwt_wakeup_later" (fun resolver v ->
     try Ok (Lwt.wakeup_later resolver v) with

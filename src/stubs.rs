@@ -1,3 +1,5 @@
+//! Stubs exported to OCaml from this crate. Do not use from Rust directly.
+
 use ocaml_rs_smartptr::ml_box::MlBox;
 use ocaml_rs_smartptr::ocaml_gen_bindings;
 use ocaml_rs_smartptr::ocaml_gen_extras::{PolymorphicValue, WithTypeParams, P1};
