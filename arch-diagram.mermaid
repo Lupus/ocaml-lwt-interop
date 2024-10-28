@@ -1,0 +1,51 @@
+graph TD
+  %% Define OCaml Domains and their Executors
+  %%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%
+  OCamlRuntime[OCaml Runtime System]
+  subgraph Domain0[Domain 0]
+    OCamlCode0[OCaml code]
+    Executor0[DomainExecutor]
+    RustStubs0[Rust stubs]
+    OCamlCode0 -->|drives| Executor0
+    OCamlCode0 -->|calls| RustStubs0
+    RustStubs0 -->|spawn tasks| Executor0
+    Executor0 -->|notifies about new tasks| OCamlCode0
+    linkStyle 0,3 stroke:#ff6b6b,stroke-width:2
+    linkStyle 1 stroke:#7f7f7f,stroke-width:2
+    linkStyle 2 stroke:#4ecdc4,stroke-width:2
+  end
+  subgraph Domain1[Domain 1 ... N]
+    OCamlCode1[OCaml code]
+    Executor1[DomainExecutor]
+    RustStubs1[Rust stubs]
+    OCamlCode1 -->|drives| Executor1
+    OCamlCode1 -->|calls| RustStubs1
+    RustStubs1 -->|spawn tasks| Executor1
+    Executor1 -->|notifies about new tasks| OCamlCode1
+    linkStyle 4,7 stroke:#ff6b6b,stroke-width:2
+    linkStyle 5 stroke:#7f7f7f,stroke-width:2
+    linkStyle 6 stroke:#4ecdc4,stroke-width:2
+  end
+  
+  
+  %% Define the Shared Tokio Runtime and its Thread Pool
+  subgraph TokioRuntime["Shared Tokio Runtime"]
+    ThreadPool[Thread Pool]
+    WorkerThread1[Worker Thread 1]
+    WorkerThread2[Worker Thread 2]
+    ThreadPool --> WorkerThread1
+    ThreadPool --> WorkerThread2
+    linkStyle 8,9 stroke:#45b7d1,stroke-width:2
+  end
+  
+  %% Connections between subgraphs
+  RustStubs0 -->|spawn tasks| TokioRuntime
+  RustStubs1 -->|spawn tasks| TokioRuntime
+  WorkerThread1 -->|registered to| OCamlRuntime
+  WorkerThread2 -->|registered to| OCamlRuntime
+  TokioRuntime -->|can run blocking code| OCamlCode0
+  TokioRuntime -->|can spawn tasks| Executor0
+  TokioRuntime -->|can spawn tasks| Executor1
+  linkStyle 10,11 stroke:#96ceb4,stroke-width:2
+  linkStyle 12,13 stroke:#ffeead,stroke-width:2
+  linkStyle 14,15,16 stroke:#d4a5a5,stroke-width:2
