@@ -14,3 +14,12 @@
  (alias runtest)
  (action
   (diff Stubs.ml Stubs.ml.new)))
+
+(rule
+ (alias runtest)
+ (action
+  (progn
+   (run ./test.exe lwt)
+   (run ./test.exe rust)
+   (run ./test.exe rust-slow)
+   (run ./test.exe gc))))
