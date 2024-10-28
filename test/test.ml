@@ -45,7 +45,7 @@ let main_rust_slow () =
   let%lwt () = Lwt_unix.sleep 10.0 in
   let finish = Unix.gettimeofday () in
   Printf.printf
-    "%.3f iterations per second, %d iterations total [Rust+Lwt]\n"
+    "%.3f iterations per second, %d iterations total [Rust(slow)+Lwt]\n"
     (float_of_int !page /. (finish -. start))
     !page;
   print_endline "lwt main returning";

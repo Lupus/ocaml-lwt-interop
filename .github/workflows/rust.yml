@@ -50,3 +50,6 @@ jobs:
 
       - name: Cargo build
         run: cargo build --verbose
+
+      - name: Dune runtest
+        run: dune runtest --verbose
