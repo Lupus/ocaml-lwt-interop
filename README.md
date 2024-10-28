@@ -4,82 +4,73 @@
 
 This project aims to solve the problem of interop between asynchronous OCaml (Lwt flavor) and asynchronous Rust.
 
+## An illustrative example
+
+The following Rust asynchronous stub:
+
+```rust
+use futures_lite::future;
+
+#[ocaml_lwt_interop::func]
+pub fn my_async_func() -> () {
+    future::yield_now().await;
+}
+```
+
+Can be declared from OCaml side as follows:
+
+```ocaml
+external my_async_func : unit -> unit Lwt.t = "my_async_func"
+```
+
+The `func` macro and the rest of the library do the heavy lifting to wrap that
+async Rust function into Lwt promise on OCaml side.
+
 ## Architecture
 
 ### Domain Executor
 
-The `DomainExecutor` runs within an OCaml domain and integrates Rust async tasks with the OCaml runtime. It uses the `async_executor` crate to manage async tasks and integrates with the `tokio` runtime for asynchronous I/O operations. The executor ensures that the OCaml runtime lock is properly managed during task execution.
+The core part is the `DomainExecutor`: it is an instance of
+`async_executor::Executor` that runs within an OCaml domain and is being
+`tick()`ed exclusively by the OCaml domain. This ensures that access to OCaml
+domain state is properly synchronized - either it's being used by OCaml code, or
+OCaml code calls `tick()` of domain-specific executor instance, which then in
+turn will be eligible to call back into OCaml code of the same domain.
 
-### Rust `Promise` and `Future` Integration
+The instance of `DomainExecutor` is managed at OCaml side, currently as a global
+`ref`, as OCaml 5 support will get implemented, this would be a variable inside
+Domain-Local-Storage.
 
-To bridge OCaml's Lwt promises with Rust's async/await syntax, the project provides a `Promise` type that implements Rust's `Future` trait. This allows Rust code to await OCaml promises asynchronously. The OCaml side can create a promise, return it to Rust, and later resolve or reject it with a value. The value is stored in the `Promise`, and when a Rust task polls this `Promise`, it will get the value back or be woken up if the value is not yet available.
+Domain-local executor allows us to run Rust tasks on the same thread that is
+currently Running OCaml, await other futures, spawn more tasks and so on.
+ 
+#### Domain Executor State
 
-## Test Scenario
+Whenever tasks are polled by OCaml domain executor, we first enter domain
+executor context and Tokio runtime context, both are managed as thread local
+stacks. This ensures that any Tokio functions like `tokio::spawn` can safely be
+used inside tasks spawned on OCaml domain executor. Also functions like getting
+a reference to OCaml runtime (sentinel type from `ocaml-rs` used to synchronize
+access to OCaml GC) will only work when ran on OCaml domain executor. This is a
+runtime safety check, same as with `tokio`, if certain functions get called
+without the context being enetered, it fails at runtime.
 
-The test scenario can be found in `test/test.ml`. It passes an Lwt-enabled callback into a Rust async task, which executes the callback, waits for it to complete, and then loops over calling it again.
+### Promise integration
 
-```mermaid
-sequenceDiagram
-participant lwt_loop as Lwt Event Loop (OCaml)
-participant fclo as F Closure (OCaml)
-participant lwt_main as Lwt Main (OCaml)
-participant rust_test as Runtime test func (Rust)
-participant runtime as Runtime (Rust)
-participant task as Task (Rust)
+The library comes with bi-directional promise integration. It can create OCaml
+Lwt promises from Rust and resolve/reject them, and it can wrap OCaml Lwt
+promises so that they are exposed to Rust as Rust futures. Nothing particularly
+complex in this part, just some registered named helper callbacks from OCaml to
+create Lwt promises, and connect Rust wrapper future to Lwt promise via
+additional Rust stubs, used to manipulate the Rust wrapper from OCaml.
 
-activate lwt_main
-note right of lwt_main: creates Rust runtime
-note right of lwt_main: creates OCaml Closure F (Lwt-enabled)
-lwt_main ->> rust_test: Run test function and pass F
-activate rust_test
-rust_test ->> runtime: Spawns async task calling F in a loop
-activate runtime
-runtime -->> lwt_loop: Trigger Lwt_unix notification
-note right of runtime: Task is stored in runtime state
-runtime ->> rust_test: Returns
-deactivate runtime
-rust_test ->> lwt_main: Returns
-deactivate rust_test
-note right of lwt_main: Sleeps...
-deactivate lwt_main
+### Architecture overview diagram
 
-note right of lwt_loop: Process Lwt_unix notification
-lwt_loop ->> runtime: Run pending tasks
-activate lwt_loop
-activate runtime
-runtime ->> task: Run
+With OCaml 4.x support so far, we only have Domain 0 part of the below diagram.
+With OCaml 5.x support - multiple domains will run their Domain-local executors.
+The only limitation is blocking OCaml code can only be run on Domain 0, which
+does not sound like a big limitation in practice. The library is designed to be
+somewhat future-proof to work with OCaml 5.x, but so far has not been adapted or
+tested in this scenario.
 
-loop Forever
-
-activate task
-task ->> fclo: Calls F Closure
-activate fclo
-note right of fclo: Creates new Lwt.pause promise<br/>and links it with Rust promise
-fclo -->> lwt_loop: Lwt.pause
-fclo ->> task: Rust promise (implements Future)
-deactivate fclo
-note left of task: Promise .await
-task ->> runtime: Return
-deactivate task
-runtime ->> lwt_loop: Return
-deactivate runtime
-deactivate lwt_loop
-
-note right of lwt_loop: Process Lwt.pause at next tick
-lwt_loop -->> task: Wakeup promise
-activate lwt_loop
-task -->> runtime: Add task to pending
-runtime -->> lwt_loop: Trigger Lwt_unix notification
-deactivate lwt_loop
-
-note right of lwt_loop: Process Lwt_unix notification
-lwt_loop ->> runtime: Run pending tasks
-activate lwt_loop
-activate runtime
-runtime ->> task: Run
-activate task
-note left of task: Promise .await completed
-deactivate lwt_loop
-
-end
-```
+![arch-diagram](./arch-diagram.png)
