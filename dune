@@ -1,3 +1,6 @@
-;(data_only_dirs target)
-
 (dirs :standard \ target)
+
+(rule
+ (alias runtest)
+ (action
+  (run dune-cargo-build @test --profile=%{profile} -- --workspace)))
