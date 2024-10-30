@@ -36,20 +36,9 @@ jobs:
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
 
-      - name: Set Opam env
-        run: opam env | tr '\n' ' ' >> $GITHUB_ENV
+      - run: cargo fmt --all -- --check
+      - run: opam exec -- cargo clippy --all -- -D warnings
 
-      - name: Add Opam switch to PATH
-        run: opam var bin >> $GITHUB_PATH
-
-      - name: Cargo fmt
-        run: cargo fmt --all -- --check
-
-      - name: Cargo clippy
-        run: cargo clippy --all -- -D warnings
-
-      - name: Cargo build
-        run: cargo build --verbose
-
-      - name: Dune runtest
-        run: dune runtest --verbose
+      - run: opam install . --deps-only --with-test
+      - run: opam exec -- dune build
+      - run: opam exec -- dune runtest
