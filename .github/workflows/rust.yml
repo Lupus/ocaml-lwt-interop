@@ -27,7 +27,7 @@ jobs:
 
       - name: OCaml/Opam cache
         id: ocaml-rs-opam-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: "~/.opam"
           key: ocaml-rs-opam-${{ matrix.ocaml-compiler }}-${{ matrix.os }}
