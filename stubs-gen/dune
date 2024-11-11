@@ -1,11 +1,16 @@
 (rule
+ (alias runtest)
  (targets stubs-gen)
  (deps
   stubs-gen.rs
   (alias %{workspace_root}/rust-staticlib/rust-universe))
  (locks cargo-build)
  (action
-  (run dune-cargo-build stubs-gen)))
+  (run
+   dune-cargo-build
+   --profile=%{profile}
+   --workspace-root=%{workspace_root}
+   ./Cargo.toml)))
 
 (rule
  (targets Ocaml_lwt_interop.ml Ocaml_lwt_interop_test_stubs.ml)
