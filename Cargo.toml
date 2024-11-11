@@ -32,3 +32,7 @@ members = [
 
 [patch.crates-io]
 ocaml-rs-smartptr = { git = "https://github.com/Lupus/ocaml-rs-smartptr.git" }
+
+# See https://github.com/dtolnay/linkme/issues/61
+[profile.dev]
+lto = "thin"

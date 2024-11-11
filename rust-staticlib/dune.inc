@@ -81,7 +81,9 @@
 ; see https://github.com/rust-lang/cargo/issues/6790
 
 (rule
- (targets librust_staticlib_rust_async.a dllrust_staticlib_rust_async.so)
+ (targets
+  "librust_staticlib_rust_async%{ocaml-config:ext_lib}"
+  "dllrust_staticlib_rust_async%{ocaml-config:ext_dll}")
  (deps
   (alias rust-universe) ; rebuild only if Rust bits change, linking is slow
   Cargo.toml)
