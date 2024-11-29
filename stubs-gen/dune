@@ -15,4 +15,6 @@
 (rule
  (targets Ocaml_lwt_interop.ml Ocaml_lwt_interop_test_stubs.ml)
  (action
-  (run ./stubs-gen)))
+  (progn
+   (run ./stubs-gen)
+   (run ocamlformat -i %{targets}))))
