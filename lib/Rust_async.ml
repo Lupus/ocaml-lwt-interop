@@ -21,6 +21,10 @@ module Runtime = struct
   ;;
 
   let current () =
+    if not (Domain_compat.is_main_domain ())
+    then
+      failwith
+        "Initializing Rust_async executor from non-main domain is not going to work well";
     match !current with
     | Some executor -> executor
     | None ->
@@ -48,5 +52,7 @@ let () =
       fut
       (fun value -> Stubs.Future.resolve wrapper value)
       (fun exn -> Stubs.Future.reject wrapper (Printexc.to_string exn));
-    wrapper)
+    wrapper);
+  (* Ensure we initialize the executor during module init *)
+  Runtime.current () |> ignore
 ;;
