@@ -2,6 +2,10 @@
  (name rust_async)
  (public_name rust-async)
  (libraries lwt.unix ocaml-rs-smartptr rust-staticlib-virtual)
+ (modules
+  :standard
+  \
+  ("Domain_compat_v4" "Domain_compat_v5"))
  (flags (-linkall))
  (preprocess
   (pps lwt_ppx)))
@@ -9,6 +13,18 @@
 (rule
  (action
   (copy %{workspace_root}/stubs-gen/Ocaml_lwt_interop.ml Stubs.ml.new)))
+
+(rule
+ (action
+  (copy Domain_compat_v4.ml Domain_compat.ml))
+ (enabled_if
+  (< %{ocaml_version} 5.00)))
+
+(rule
+ (action
+  (copy Domain_compat_v5.ml Domain_compat.ml))
+ (enabled_if
+  (>= %{ocaml_version} 5.00)))
 
 (rule
  (alias runtest)
