@@ -5,7 +5,4 @@
 x-rust-stubs-crate: "ocaml-lwt-interop"
 pin-depends: [
   ["ocaml-rs-smartptr.0.1.0" "git+https://github.com/Lupus/ocaml-rs-smartptr.git"]
-  ["rust-staticlib-gen.0.2.2" "git+https://github.com/Lupus/rust-staticlib-gen.git#0.2.2"]
-  ["rust-staticlib-virtual.0.2.2" "git+https://github.com/Lupus/rust-staticlib-gen.git#0.2.2"]
-  ["dune-cargo-build.0.2.2" "git+https://github.com/Lupus/rust-staticlib-gen.git#0.2.2"]
 ]

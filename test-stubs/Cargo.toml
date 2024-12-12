@@ -10,7 +10,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = "1.0.89"
 async-task = "4.7.1"
-ocaml = "1.0.1"
+ocaml = "1.1.0"
 futures-lite = "2.3"
 paste = "1.0.15"
 tokio = { version="*", features=["time"] }

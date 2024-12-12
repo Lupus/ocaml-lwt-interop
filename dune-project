@@ -13,33 +13,31 @@
  (homepage "https://github.com/Lupus/ocaml-lwt-interop")
  (bug_reports "https://github.com/Lupus/ocaml-lwt-interop/issues")
  (depends
-  (ocaml
-   (< 5.0.0))
   dune
   conf-rust-2021
   (rust-staticlib-gen
    (and
-    (>= 0.2.0)
+    (>= 0.2.2)
     :with-test))
   (rust-staticlib-virtual
-   (>= 0.2.0))
+   (>= 0.2.2))
   (dune-cargo-build
    (and
-    (>= 0.2.0)
+    (>= 0.2.2)
     :build))
   (ocaml-rs-smartptr
    (>= 0.1.0))
   (lwt
    (and
     (>= 5.6.0)
-    (< 5.7.0)))
+    (< 6.0.0)))
   (lwt_ppx
    (and
-    (>= 2.1.0)
-    (< 2.2.0)))
+    (>= 5.8.0)
+    (< 6.0.0)))
   (ocamlformat
    (and
     :with-test
     (>= 0.25.1)
-    (< 0.26.0)))
+    (< 0.27.0)))
   (odoc :with-doc)))
