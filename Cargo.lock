@@ -263,34 +263,13 @@ dependencies = [
 
 [[package]]
 name = "ocaml"
-version = "0.22.4"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a48b45c32924a3d95aea68f628ec93737bf7cfdb7b0d14344cf3d5176caa1302"
+checksum = "8394aaacbc45064f50520133c81918ed19127d128e10b43db52212420f21ad5a"
 dependencies = [
- "ocaml-boxroot-sys 0.2.0",
- "ocaml-derive 0.22.0",
- "ocaml-interop",
- "ocaml-sys 0.22.3",
-]
-
-[[package]]
-name = "ocaml"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d8d4c8f085edfe98a1edf883c560019626194814237b12138ac160caa6c776c"
-dependencies = [
- "ocaml-boxroot-sys 0.3.1",
- "ocaml-derive 1.0.0",
- "ocaml-sys 0.24.0",
-]
-
-[[package]]
-name = "ocaml-boxroot-sys"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5186393bfbee4ce2bc5bbb82beafb77e85c1d0a557e3cfc8c8a0d63d7845fed5"
-dependencies = [
- "cc",
+ "ocaml-boxroot-sys",
+ "ocaml-derive",
+ "ocaml-sys",
 ]
 
 [[package]]
@@ -300,18 +279,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "541b4c121093aa5bfb1b0e0d6f8ca00c807b156445bc4f4e19683421f6d26208"
 dependencies = [
  "cc",
-]
-
-[[package]]
-name = "ocaml-derive"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b40aa99a001268b85eb18414ecd190dc21fceaeaf81214ca28233b6feb25a998"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "synstructure",
 ]
 
 [[package]]
@@ -328,11 +295,10 @@ dependencies = [
 [[package]]
 name = "ocaml-gen"
 version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a82934c07e0c1f76862e09fd654b6f1241a112797f9d9979bacfa084210f8a7"
+source = "git+https://github.com/Lupus/ocaml-gen.git#f3f5c4d4651f36b8f9a84bda41273250a1b1615f"
 dependencies = [
  "const-random",
- "ocaml 0.22.4",
+ "ocaml",
  "ocaml-gen-derive",
  "paste",
 ]
@@ -340,24 +306,12 @@ dependencies = [
 [[package]]
 name = "ocaml-gen-derive"
 version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1894efdef5c9d83d17932c5f5db16d16eb5c8ae1a625ce44d9d1715e85d9d8dc"
+source = "git+https://github.com/Lupus/ocaml-gen.git#f3f5c4d4651f36b8f9a84bda41273250a1b1615f"
 dependencies = [
  "convert_case",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "ocaml-interop"
-version = "0.8.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e01e08412a7e072a90a225d2ae49a2860aeea853ce673bc63891dbf86aed063"
-dependencies = [
- "ocaml-boxroot-sys 0.2.0",
- "ocaml-sys 0.22.3",
- "static_assertions",
 ]
 
 [[package]]
@@ -367,7 +321,7 @@ dependencies = [
  "async-executor",
  "futures-lite",
  "highway",
- "ocaml 1.0.1",
+ "ocaml",
  "ocaml-gen",
  "ocaml-lwt-interop-macro",
  "ocaml-rs-smartptr",
@@ -393,7 +347,7 @@ dependencies = [
  "anyhow",
  "async-task",
  "futures-lite",
- "ocaml 1.0.1",
+ "ocaml",
  "ocaml-gen",
  "ocaml-lwt-interop",
  "ocaml-rs-smartptr",
@@ -409,7 +363,7 @@ dependencies = [
  "derive_more",
  "highway",
  "inventory",
- "ocaml 1.0.1",
+ "ocaml",
  "ocaml-gen",
  "ocaml-rs-smartptr-macro",
  "owning_ref",
@@ -432,18 +386,9 @@ dependencies = [
 
 [[package]]
 name = "ocaml-sys"
-version = "0.22.3"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73ec6ca7d41458442627435afb8f4671e83fd642e8a560171d671a1f679aa3cf"
-dependencies = [
- "cty",
-]
-
-[[package]]
-name = "ocaml-sys"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff95caad36996cfaa425f1469bf0c132afac668e2654d5d1d89d1cc64001be02"
+checksum = "791a59e8b9aa8b2e345433d34cd1c5f16ef6a0c703cc0e4fe9e20df87d2ef63d"
 dependencies = [
  "cc",
  "cty",
@@ -648,18 +593,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "synstructure"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f36bdaa60a83aca3921b5259d5400cbf5e90fc51931376a9bd4a0eb79aa7210f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "unicode-xid",
 ]
 
 [[package]]
