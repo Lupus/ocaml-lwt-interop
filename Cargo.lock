@@ -358,7 +358,7 @@ dependencies = [
 [[package]]
 name = "ocaml-rs-smartptr"
 version = "0.1.0"
-source = "git+https://github.com/Lupus/ocaml-rs-smartptr.git#5aa13571336c9e51b7a628a83e256bd5fdd3a4f4"
+source = "git+https://github.com/Lupus/ocaml-rs-smartptr.git#bd9fea13f81df26a8de53824670e86b69566bb5e"
 dependencies = [
  "derive_more",
  "highway",
@@ -377,7 +377,7 @@ dependencies = [
 [[package]]
 name = "ocaml-rs-smartptr-macro"
 version = "0.1.0"
-source = "git+https://github.com/Lupus/ocaml-rs-smartptr.git#5aa13571336c9e51b7a628a83e256bd5fdd3a4f4"
+source = "git+https://github.com/Lupus/ocaml-rs-smartptr.git#bd9fea13f81df26a8de53824670e86b69566bb5e"
 dependencies = [
  "proc-macro2",
  "quote",
