@@ -38,6 +38,6 @@
   (ocamlformat
    (and
     :with-test
-    (>= 0.25.1)
+    (>= 0.26.2)
     (< 0.27.0)))
   (odoc :with-doc)))
