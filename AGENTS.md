@@ -33,3 +33,54 @@ This repository contains a mixed OCaml/Rust project where Rust bindings are expo
 - Title format: [Component] Brief description
 - Include a "Testing Done" section that lists verification steps performed
 - Ensure all tests pass locally before submission
+
+## Git Commit Best Practices
+
+**Atomic and Focused Commits**
+
+- Each commit should represent a single logical change - avoid mixing unrelated changes in one commit. This makes it easier to review, revert, and understand the project history.
+
+**Descriptive Commit Messages**
+
+- Write clear, concise subject lines (ideally 50 characters or less) that summarize the change. Avoid vague messages like "fix bug".
+- Use the imperative mood in the subject line (e.g., "Add test for Rust bindings" instead of "Added test for Rust bindings").
+- Capitalize the first letter of the subject line and do not end it with a period.
+- Separate the subject from the body with a blank line.
+- If needed, include a detailed body (wrapped at 72 characters per line) explaining the "what" and "why" of the change. Focus on the reasoning and context, not implementation details.
+- Reference related issues or pull requests in the body or footer for traceability (e.g., "Fixes \#123").
+
+**Commit Organization and Consistency**
+
+- Make small, specific commits. This helps with code review and makes it easier to revert changes if necessary.
+- Scope commits to a single feature, bug fix, or refactor. Don’t leave the codebase in a broken state between commits.
+- Organize commits into a logical narrative that tells the story of your changes.
+- Test and verify code before committing to ensure the commit does not break the build or tests.
+
+**Conventional Commit Guidelines**
+
+- Consider following the [Conventional Commits](https://www.conventionalcommits.org/) specification for consistency:
+    - Prefix the subject with a type (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
+    - Optionally include a scope in parentheses (e.g., `feat(auth): add JWT-based authentication`).
+- Example:
+
+```
+feat(rust): add offline cargo test support
+```
+
+
+**Commit Message Structure Example**
+
+```
+Fix OCaml/Rust integration test runner
+
+Ensure that the offline flag is correctly passed to all cargo commands.
+This prevents network calls in CI and local environments without internet.
+Fixes #42.
+```
+
+**Additional Tips**
+
+- Avoid including unrelated fixes or changes in a single commit, even if they seem minor.
+- Use commit message templates to encourage consistent structure and clarity.
+- Push commits early and often to avoid losing work and to facilitate collaboration.
+
