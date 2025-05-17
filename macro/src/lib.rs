@@ -47,7 +47,7 @@ fn segments_equal(seg1: &syn::PathSegment, seg2: &syn::PathSegment) -> bool {
 
 fn func_impl(input: ItemFn) -> TokenStream2 {
     let fn_name = &input.sig.ident;
-    let fn_body = &input.block;
+    let fn_body_stmts = &input.block.stmts;
     let fn_args = &input.sig.inputs;
     let fn_ret = match &input.sig.output {
         syn::ReturnType::Default => syn::parse2::<syn::ReturnType>(
@@ -77,13 +77,37 @@ fn func_impl(input: ItemFn) -> TokenStream2 {
         quote! { #[ocaml::func] }
     };
 
+    // Prepare arguments for calling the inner function. We expect patterns to be
+    // simple identifiers.
+    let call_args: Vec<syn::Ident> = fn_args
+        .iter()
+        .filter_map(|arg| match arg {
+            syn::FnArg::Typed(pat_type) => match pat_type.pat.as_ref() {
+                syn::Pat::Ident(pat_ident) => Some(pat_ident.ident.clone()),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    let inner_fn_name = syn::Ident::new("__inner", proc_macro2::Span::call_site());
+    let fn_generics = &input.sig.generics;
+    let fn_output = match &input.sig.output {
+        syn::ReturnType::Default => {
+            syn::parse2::<syn::ReturnType>(quote! { -> () }).unwrap()
+        }
+        other => other.clone(),
+    };
+
     quote! {
         #(#other_attrs)*
         #ocaml_func_attr
         pub fn #fn_name(#fn_args) #fn_ret {
+            async fn #inner_fn_name #fn_generics(#fn_args) #fn_output {
+                #(#fn_body_stmts)*
+            }
             let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
             let task = ::ocaml_lwt_interop::domain_executor::spawn_with_runtime(gc, async move {
-                let res = #fn_body;
+                let res = #inner_fn_name(#(#call_args),*).await;
                 let gc = &::ocaml_lwt_interop::domain_executor::ocaml_runtime();
                 resolver.resolve(gc, &res);
             });
@@ -115,13 +139,14 @@ mod tests {
         let expected: TokenStream2 = quote! {
             #[ocaml::func]
             pub fn lwti_tests_bench() -> ::ocaml_lwt_interop::promise::Promise<()> {
+                async fn __inner() -> () {
+                    future::yield_now().await;
+                    resolver.resolve(&ocaml_runtime(), &());
+                    ()
+                }
                 let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
                 let task = ::ocaml_lwt_interop::domain_executor::spawn_with_runtime(gc, async move {
-                    let res = {
-                        future::yield_now().await;
-                        resolver.resolve(&ocaml_runtime(), &());
-                        ()
-                    };
+                    let res = __inner().await;
                     let gc = &::ocaml_lwt_interop::domain_executor::ocaml_runtime();
                     resolver.resolve(gc, &res);
                 });
@@ -145,9 +170,11 @@ mod tests {
         let expected: TokenStream2 = quote! {
             #[ocaml::func(whatever)]
             pub fn lwti_tests_bench() -> ::ocaml_lwt_interop::promise::Promise<()> {
+                async fn __inner() -> () {
+                }
                 let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
                 let task = ::ocaml_lwt_interop::domain_executor::spawn_with_runtime(gc, async move {
-                    let res = {};
+                    let res = __inner().await;
                     let gc = &::ocaml_lwt_interop::domain_executor::ocaml_runtime();
                     resolver.resolve(gc, &res);
                 });
@@ -170,9 +197,11 @@ mod tests {
         let expected: TokenStream2 = quote! {
             #[ocaml::func]
             pub fn lwti_tests_bench(arg1: String, args2: u32) -> ::ocaml_lwt_interop::promise::Promise<u64> {
+                async fn __inner(arg1: String, args2: u32) -> u64 {
+                }
                 let (fut, resolver) = ::ocaml_lwt_interop::promise::Promise::new(gc);
                 let task = ::ocaml_lwt_interop::domain_executor::spawn_with_runtime(gc, async move {
-                    let res = {};
+                    let res = __inner(arg1, args2).await;
                     let gc = &::ocaml_lwt_interop::domain_executor::ocaml_runtime();
                     resolver.resolve(gc, &res);
                 });
