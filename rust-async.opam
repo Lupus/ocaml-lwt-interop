@@ -9,12 +9,14 @@ bug-reports: "https://github.com/Lupus/ocaml-lwt-interop/issues"
 depends: [
   "dune" {>= "3.7"}
   "conf-rust-2021"
-  "rust-staticlib-gen" {>= "0.2.2" & with-test}
+  "rust-staticlib-gen" {>= "0.2.2"}
   "rust-staticlib-virtual" {>= "0.2.2"}
   "dune-cargo-build" {>= "0.2.2" & build}
   "ocaml-rs-smartptr" {>= "0.1.0"}
   "lwt" {>= "5.6.0" & < "6.0.0"}
   "lwt_ppx" {>= "5.8.0" & < "6.0.0"}
+  "alcotest" {>= "1.9.0"}
+  "alcotest-lwt" {>= "1.9.0"}
   "ocamlformat" {with-test & >= "0.26.2" & < "0.27.0"}
   "odoc" {with-doc}
 ]

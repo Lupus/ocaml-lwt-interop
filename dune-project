@@ -16,9 +16,7 @@
   dune
   conf-rust-2021
   (rust-staticlib-gen
-   (and
-    (>= 0.2.2)
-    :with-test))
+   (>= 0.2.2))
   (rust-staticlib-virtual
    (>= 0.2.2))
   (dune-cargo-build
@@ -35,6 +33,10 @@
    (and
     (>= 5.8.0)
     (< 6.0.0)))
+  (alcotest
+   (>= 1.9.0))
+  (alcotest-lwt
+   (>= 1.9.0))
   (ocamlformat
    (and
     :with-test
