@@ -60,6 +60,15 @@ pub fn lwti_tests_test_sync_call(f: OCamlFunc<(), ()>) {
     join_handle.await.unwrap();
 }
 
+#[ocaml_gen::func]
+#[ocaml::func]
+pub fn lwti_tests_spawn_lwt(val: i64) -> ocaml_lwt_interop::promise::Promise<i64> {
+    ocaml_lwt_interop::domain_executor::spawn_lwt(gc, async move {
+        future::yield_now().await;
+        val + 1
+    })
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //////////               OCaml bindings generation                   //////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -70,5 +79,6 @@ ocaml_gen_bindings! {
         decl_func!(lwti_tests_test1 => "test_1");
         decl_func!(lwti_tests_test2 => "test_2");
         decl_func!(lwti_tests_test_sync_call => "test_sync_call");
+        decl_func!(lwti_tests_spawn_lwt => "spawn_lwt");
     });
 }
