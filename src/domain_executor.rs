@@ -366,6 +366,28 @@ where
     ex.coerce().spawn(future)
 }
 
+/// Spawns a future onto the executor obtained from the OCaml runtime and
+/// returns an [`crate::promise::Promise`].
+///
+/// The future's output must implement [`ocaml::ToValue`], allowing the result
+/// to be converted and resolved back into OCaml.
+pub fn spawn_lwt<T>(
+    gc: &ocaml::Runtime,
+    fut: impl Future<Output = T> + Send + 'static,
+) -> crate::promise::Promise<T>
+where
+    T: ocaml::ToValue + Send + 'static,
+{
+    let (promise, resolver) = crate::promise::Promise::new(gc);
+    let task = spawn_with_runtime(gc, async move {
+        let res = fut.await;
+        let gc = &ocaml_runtime();
+        resolver.resolve(gc, &res);
+    });
+    task.detach();
+    promise
+}
+
 /// A handle to the OCaml domain executor, allowing tasks to be spawned.
 ///
 /// The `Handle` holds a reference to the executor context and provides methods
