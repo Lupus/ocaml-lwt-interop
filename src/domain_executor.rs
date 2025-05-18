@@ -195,7 +195,7 @@ impl Drop for ExecutorGuard {
             let mut stack = stack.borrow_mut();
             assert!(stack
                 .last()
-                .map_or(false, |ex_ctx| Rc::ptr_eq(ex_ctx, &self.executor_context)));
+                .is_some_and(|ex_ctx| Rc::ptr_eq(ex_ctx, &self.executor_context)));
             stack.pop();
         });
     }
