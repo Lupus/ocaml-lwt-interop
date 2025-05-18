@@ -12,7 +12,7 @@ This repository contains a mixed OCaml/Rust project where Rust bindings are expo
 ## Code Style & Formatting
 - Always format Rust code before submitting changes: `cargo fmt --all`
 - All Clippy warnings must be fixed (they are treated as errors in CI)
-- Use automatic fixing when possible: `cargo clippy --fix --all -- -D warnings --offline`
+- Use automatic fixing when possible: `cargo clippy --fix --all --offline --allow-dirty -- -D warnings`
 - Always format Rust code before submitting changes: `opam exec -- dune fmt`
 
 ## Testing Requirements
@@ -24,7 +24,7 @@ This repository contains a mixed OCaml/Rust project where Rust bindings are expo
 
 ## Build Process
 1. Format code: `cargo fmt --all`/`opam exec -- dune fmt`
-2. Fix linting issues: `cargo clippy --fix --all -- -D warnings --offline`
+2. Fix linting issues: `cargo clippy --fix --all --offline --allow-dirty -- -D warnings`
 3. Run Rust tests: `cargo test --offline`
 4. Build OCaml components: `opam exec -- dune build`
 5. Run OCaml tests: `opam exec -- dune runtest`
