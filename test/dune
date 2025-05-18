@@ -1,6 +1,27 @@
+(library
+ (name test_stubs)
+ (wrapped false)
+ (modules Stubs)
+ (libraries rust_async_stubs lwt))
+
+(executable
+ (name benchmark)
+ (modules benchmark)
+ (libraries unix lwt.unix rust-async rust_async_stubs test_stubs)
+ (preprocess
+  (pps lwt_ppx)))
+
 (executable
  (name test)
- (libraries unix lwt.unix rust-async rust_async_stubs)
+ (modules test)
+ (libraries
+  unix
+  lwt.unix
+  alcotest
+  alcotest-lwt
+  rust-async
+  rust_async_stubs
+  test_stubs)
  (preprocess
   (pps lwt_ppx)))
 
@@ -16,10 +37,15 @@
   (diff Stubs.ml Stubs.ml.new)))
 
 (rule
- (alias runtest)
+ (alias benchmark)
  (action
   (progn
-   (run ./test.exe lwt)
-   (run ./test.exe rust)
-   (run ./test.exe rust-slow)
-   (run ./test.exe gc))))
+   (run ./benchmark.exe lwt)
+   (run ./benchmark.exe rust)
+   (run ./benchmark.exe rust-slow)
+   (run ./benchmark.exe gc))))
+
+(rule
+ (alias runtest)
+ (action
+  (run ./test.exe)))
