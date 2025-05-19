@@ -52,7 +52,5 @@ let () =
       fut
       (fun value -> Stubs.Future.resolve wrapper value)
       (fun exn -> Stubs.Future.reject wrapper (Printexc.to_string exn));
-    wrapper);
-  (* Ensure we initialize the executor during module init *)
-  Runtime.current () |> ignore
+    wrapper)
 ;;
