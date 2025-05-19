@@ -4,6 +4,8 @@
 
 This project aims to solve the problem of interop between asynchronous OCaml (Lwt flavor) and asynchronous Rust.
 
+Documentation can be browsed [online](http://olkhovskiy.me/ocaml-lwt-interop).
+
 ## An illustrative example
 
 The following Rust asynchronous stub:
