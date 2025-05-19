@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This library extends the functionality provided by the `ocaml-rs` and `ocaml-rs-smartptr` libraries to facilitate seamless integration between Rust’s async ecosystem and OCaml’s Lwt concurrency library."><title>ocaml_lwt_interop - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="ocaml_lwt_interop" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../static.files/storage-3a5871a4.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../ocaml_lwt_interop/index.html">ocaml_<wbr>lwt_<wbr>interop</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#key-features" title="Key Features">Key Features</a></li><li><a href="#ocaml_lwt_interopfunc-macro" title="`#[ocaml_lwt_interop::func]` Macro"><code>#[ocaml_lwt_interop::func]</code> Macro</a><ul><li><a href="#desugared-version" title="Desugared version">Desugared version</a></li></ul></li><li><a href="#tokio-integration" title="Tokio integration">Tokio integration</a></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#attributes" title="Attribute Macros">Attribute Macros</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>ocaml_lwt_interop</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/ocaml_lwt_interop/lib.rs.html#1-137">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This library extends the functionality provided by the <code>ocaml-rs</code> and
+<code>ocaml-rs-smartptr</code> libraries
+to facilitate seamless integration between Rust’s async ecosystem and
+OCaml’s Lwt concurrency library.</p>
+<h2 id="key-features"><a class="doc-anchor" href="#key-features">§</a>Key Features</h2>
+<ul>
+<li><strong>Domain Executor</strong>: Provides an executor designed to run within an OCaml
+domain, allowing Rust async tasks to be executed while ensuring proper
+interaction with the OCaml runtime system.</li>
+<li><strong>Promise and Future Integration</strong>: Bridges OCaml’s Lwt promises with
+Rust’s async/await syntax, enabling Rust code to await OCaml promises
+asynchronously.</li>
+<li><strong>Notification Mechanism</strong>: Implements a notification system to wake up
+the OCaml event loop from Rust, ensuring efficient communication between
+Rust and OCaml.</li>
+<li><strong>OCaml Runtime Management</strong>: Offers utilities for managing the OCaml
+runtime lock, ensuring safe execution of Rust code that interacts with
+the OCaml runtime.</li>
+<li><strong>Async Function Wrappers</strong>: Provides wrappers for OCaml functions that
+return Lwt promises, allowing them to be called from Rust and awaited
+asynchronously.</li>
+</ul>
+<h2 id="ocaml_lwt_interopfunc-macro"><a class="doc-anchor" href="#ocaml_lwt_interopfunc-macro">§</a><code>#[ocaml_lwt_interop::func]</code> Macro</h2>
+<p>This macro helps define asynchronous Rust stubs that integrate seamlessly
+with OCaml’s Lwt concurrency library. Functions annotated with this macro
+are transformed into asynchronous functions that return a <code>Promise</code>. Inside
+these functions, you can use <code>await</code> to wait for asynchronous operations to
+complete. From the end user’s perspective, these functions behave like
+<code>async fn</code> in Rust.  The macro ensures that the function’s result is
+wrapped in a <code>Promise</code>, which can be awaited in OCaml via Lwt. For
+convenience <code>#[ocaml_lwt_interop::func]</code> macro automatically adds
+<code>#[ocaml::func]</code> for you.</p>
+<p>Example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>futures_lite::future;
+
+<span class="attr">#[ocaml_lwt_interop::func]
+</span><span class="kw">pub fn </span>my_async_func() -&gt; () {
+    future::yield_now().<span class="kw">await</span>;
+}</code></pre></div>
+<p>Can be declared from OCaml side as follows:</p>
+<div class="example-wrap"><pre class="language-ocaml"><code>external my_async_func : unit -&gt; unit Lwt.t = &quot;my_async_func&quot;</code></pre></div><h3 id="desugared-version"><a class="doc-anchor" href="#desugared-version">§</a>Desugared version</h3>
+<p>It is entirely possible to write async bindings using plain
+<code>#[ocaml::func]</code>, code below is roughly what above macro-decorated version
+expands to.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>futures_lite::future;
+<span class="kw">use </span>ocaml_lwt_interop::promise::Promise;
+<span class="kw">use </span>ocaml_lwt_interop::domain_executor::{ocaml_runtime, spawn_with_runtime};
+
+<span class="attr">#[ocaml::func]
+</span><span class="kw">pub fn </span>my_async_func() -&gt; Promise&lt;()&gt; {
+    <span class="kw">let </span>(fut, resolver) = Promise::new(gc);
+    <span class="kw">let </span>task = spawn_with_runtime(gc, <span class="kw">async move </span>{
+        <span class="kw">let </span>res = {
+            future::yield_now().<span class="kw">await</span>;
+        };
+        <span class="kw">let </span>gc = ocaml_runtime();
+        resolver.resolve(<span class="kw-2">&amp;</span>gc, <span class="kw-2">&amp;</span>res);
+    });
+    task.detach();
+    fut
+}</code></pre></div>
+<h2 id="tokio-integration"><a class="doc-anchor" href="#tokio-integration">§</a>Tokio integration</h2>
+<p><code>ocaml-lwt-interop</code> integrates Tokio natively, and manages internal Tokio
+runtime. Below example demonstrates complex scenario with mixed tasks
+running on OCaml domain executor and Tokio runtime.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>ocaml_lwt_interop::async_func::OCamlAsyncFunc;
+<span class="kw">use </span>ocaml_lwt_interop::domain_executor;
+<span class="kw">use </span>tokio::time::{sleep, Duration};
+
+<span class="attr">#[ocaml_lwt_interop::func]
+</span><span class="kw">pub fn </span>my_async_func_2(f: OCamlAsyncFunc&lt;(), ()&gt;) -&gt; () {
+    <span class="kw">let </span>handle = domain_executor::handle();
+    <span class="comment">// Spawn tokio task
+    </span><span class="kw">let </span>join_handle = tokio::spawn(<span class="kw">async move </span>{
+        <span class="comment">// Sleep for 5 seconds
+        </span>sleep(Duration::from_secs(<span class="number">5</span>)).<span class="kw">await</span>;
+        <span class="comment">// Spawn "OCaml-friendly" task, running on OCaml domain executor
+        </span><span class="kw">let </span>task = handle.spawn(<span class="kw">async move </span>{
+            <span class="comment">// call `f` and await its result
+            </span><span class="kw">let </span>res = f.call(()).<span class="kw">await</span>.map_err(|e| e.to_string());
+            <span class="comment">// we can use any Tokio functions from "OCaml-friendly" tasks
+            </span>sleep(Duration::from_secs(<span class="number">0</span>)).<span class="kw">await</span>;
+            <span class="kw">match </span>res {
+                <span class="prelude-val">Ok</span>(()) =&gt; (),
+                <span class="prelude-val">Err</span>(msg) =&gt; {
+                    <span class="macro">panic!</span>(<span class="string">"Task failed: {}"</span>, msg);
+                }
+            }
+        });
+        <span class="comment">// Wait for "OCaml-friendly" task to complete inside Tokio task
+        </span>task.<span class="kw">await
+    </span>});
+    <span class="comment">// Wait for Tokio task to complete inside "OCaml-friendly" task
+    </span>join_handle.<span class="kw">await</span>.unwrap()
+}</code></pre></div>
+<p>Correct signature for above Rust stub function for OCaml will be:</p>
+<div class="example-wrap"><pre class="language-ocaml"><code>external my_async_func_2 : (unit -&gt; unit Lwt.t) -&gt; unit Lwt.t = &quot;my_async_func_2&quot;</code></pre></div></div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="async_func/index.html" title="mod ocaml_lwt_interop::async_func">async_<wbr>func</a></dt><dd>An extension on top of <code>OCamlFunc</code> for asynchronous functions</dd><dt><a class="mod" href="domain_executor/index.html" title="mod ocaml_lwt_interop::domain_executor">domain_<wbr>executor</a></dt><dd>This module provides an executor for OCaml domains, integrating Rust async
+executors with the OCaml runtime.</dd><dt><a class="mod" href="error/index.html" title="mod ocaml_lwt_interop::error">error</a></dt><dt><a class="mod" href="ml_box_future/index.html" title="mod ocaml_lwt_interop::ml_box_future">ml_<wbr>box_<wbr>future</a></dt><dd>This module provides an implementation of a <code>Future</code> called <code>MlBoxFuture</code>,
+which bridges OCaml’s Lwt futures with Rust’s async ecosystem.</dd><dt><a class="mod" href="notification/index.html" title="mod ocaml_lwt_interop::notification">notification</a></dt><dd>This module provides an interface to Lwt-specific mechanism to notify event
+loop about some events happening from other threads. This is done by calling
+<code>lwt_unix_send_notification</code> function. This has to be specific for
+concurrency library used on OCaml side, as we need to send event from
+potentially other thread which should wake up the event loop on OCaml side.</dd><dt><a class="mod" href="promise/index.html" title="mod ocaml_lwt_interop::promise">promise</a></dt><dd>The <code>Promise</code>, <code>Resolver`` and </code>PromiseFuture<code>types in this module allow Rust code to await OCaml promises asynchronously. This is achieved by bridging OCaml's Lwt promises with Rust's</code>Future` trait.</dd><dt><a class="mod" href="stubs/index.html" title="mod ocaml_lwt_interop::stubs">stubs</a></dt><dd>Stubs exported to OCaml from this crate. Do not use from Rust directly.</dd></dl><h2 id="attributes" class="section-header">Attribute Macros<a href="#attributes" class="anchor">§</a></h2><dl class="item-table"><dt><a class="attr" href="attr.func.html" title="attr ocaml_lwt_interop::func">func</a></dt></dl></section></div></main></body></html>

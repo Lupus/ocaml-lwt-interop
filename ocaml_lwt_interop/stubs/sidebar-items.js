@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["lwti_executor_create","lwti_executor_create_to_ocaml","lwti_executor_run_pending","lwti_executor_run_pending_to_ocaml","lwti_mlbox_future_create","lwti_mlbox_future_create_to_ocaml","lwti_mlbox_future_reject","lwti_mlbox_future_reject_to_ocaml","lwti_mlbox_future_resolve","lwti_mlbox_future_resolve_to_ocaml"],"type":["Executor","Future"]};
