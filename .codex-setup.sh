@@ -143,7 +143,7 @@ initialize_opam() {
     fi
     
     log "INFO" "Initializing Opam..."
-    opam init --disable-sandboxing --auto-setup --yes || {
+    opam init --bare --disable-sandboxing --no-setup --yes || {
         log "ERROR" "Failed to initialize Opam"
         exit 1
     }
