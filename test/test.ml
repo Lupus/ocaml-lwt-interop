@@ -22,6 +22,12 @@ let test_spawn_lwt _ () =
   Lwt.return_unit
 ;;
 
+let test_spawn_lwt_err _ () =
+  Lwt.catch
+    (fun () -> Tests.spawn_lwt_err 0L >>= fun _ -> fail "expected exn")
+    (fun _ -> Lwt.return_unit)
+;;
+
 let test_run_in_ocaml_domain _ () =
   let called = ref false in
   Tests.run_in_ocaml_domain (fun () -> called := true)
@@ -79,6 +85,7 @@ let () =
            ; test_case "test2" `Quick test_test2
            ; test_case "sync_call" `Quick test_sync_call
            ; test_case "spawn_lwt" `Quick test_spawn_lwt
+           ; test_case "spawn_lwt_err" `Quick test_spawn_lwt_err
            ; test_case "run_in_ocaml_domain" `Quick test_run_in_ocaml_domain
            ; test_case "handle" `Quick test_handle
            ; test_case "promise_from_rust" `Quick test_promise_from_rust
