@@ -13,6 +13,7 @@ use ocaml_rs_smartptr::func::OCamlFunc;
 /// `OCamlFunc` wraps some OCaml function returning the value itself,
 /// `OCamlAsyncFunc` wraps OCaml function that wraps `'a Lwt.t`, i.e. returns a
 /// promise which will eventually resolve to a value.
+#[derive(Clone)]
 pub struct OCamlAsyncFunc<Args, Ret>(OCamlFunc<Args, Promise<Ret>>);
 
 assert_impl_all!(OCamlAsyncFunc<(ocaml::Value,),ocaml::Value>: Send, Sync, UnwindSafe, RefUnwindSafe);
