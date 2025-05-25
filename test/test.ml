@@ -22,10 +22,26 @@ let test_spawn_lwt _ () =
   Lwt.return_unit
 ;;
 
+let string_contains_sub str sub =
+  let len = String.length str in
+  let sublen = String.length sub in
+  let rec aux i =
+    if i + sublen > len then false
+    else if String.sub str i sublen = sub then true
+    else aux (i + 1)
+  in
+  aux 0
+
 let test_spawn_lwt_panic _ () =
   Lwt.catch
     (fun () -> Tests.spawn_lwt_panic 0L >>= fun _ -> fail "expected exn")
-    (fun _ -> Lwt.return_unit)
+    (fun exn ->
+      let msg = Printexc.to_string exn |> String.lowercase_ascii in
+      if not (string_contains_sub msg "boom") then
+        fail (Printf.sprintf "exception did not contain 'boom': %s" msg)
+      else
+        Lwt.return_unit
+    )
 ;;
 
 let test_run_in_ocaml_domain _ () =
