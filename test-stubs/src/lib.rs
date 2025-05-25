@@ -65,7 +65,16 @@ pub fn lwti_tests_test_sync_call(f: OCamlFunc<(), ()>) {
 pub fn lwti_tests_spawn_lwt(val: i64) -> ocaml_lwt_interop::promise::Promise<i64> {
     ocaml_lwt_interop::domain_executor::spawn_lwt(gc, async move {
         future::yield_now().await;
-        val + 1
+        Ok::<_, Box<dyn std::error::Error>>(val + 1)
+    })
+}
+
+#[ocaml_gen::func]
+#[ocaml::func]
+pub fn lwti_tests_spawn_lwt_err(_val: i64) -> ocaml_lwt_interop::promise::Promise<i64> {
+    ocaml_lwt_interop::domain_executor::spawn_lwt(gc, async move {
+        future::yield_now().await;
+        Err::<i64, Box<dyn std::error::Error>>(Box::new(std::io::Error::other("boom")))
     })
 }
 
@@ -142,6 +151,7 @@ ocaml_gen_bindings! {
         decl_func!(lwti_tests_test2 => "test_2");
         decl_func!(lwti_tests_test_sync_call => "test_sync_call");
         decl_func!(lwti_tests_spawn_lwt => "spawn_lwt");
+        decl_func!(lwti_tests_spawn_lwt_err => "spawn_lwt_err");
         decl_func!(lwti_tests_run_in_ocaml_domain => "run_in_ocaml_domain");
         decl_func!(lwti_tests_handle => "handle_test");
         decl_func!(lwti_tests_promise_create => "promise_create");

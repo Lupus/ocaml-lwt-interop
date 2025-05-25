@@ -373,7 +373,7 @@ where
 /// to be converted and resolved back into OCaml.
 pub fn spawn_lwt<T>(
     gc: &ocaml::Runtime,
-    fut: impl Future<Output = T> + Send + 'static,
+    fut: impl Future<Output = Result<T, Box<dyn std::error::Error>>> + Send + 'static,
 ) -> crate::promise::Promise<T>
 where
     T: ocaml::ToValue + Send + 'static,
@@ -382,7 +382,12 @@ where
     let task = spawn_with_runtime(gc, async move {
         let res = fut.await;
         let gc = &ocaml_runtime();
-        resolver.resolve(gc, &res);
+        match res {
+            Ok(v) => resolver.resolve(gc, &v),
+            Err(err) => {
+                resolver.reject(gc, format!("spawn_lwt: rust task failed: {}", err))
+            }
+        }
     });
     task.detach();
     promise
