@@ -53,6 +53,7 @@ use std::{
 };
 
 use async_executor::{Executor, Task};
+use futures_lite::FutureExt;
 use tokio::runtime::Builder;
 
 use ocaml_rs_smartptr::ptr::DynBox;
@@ -373,16 +374,28 @@ where
 /// to be converted and resolved back into OCaml.
 pub fn spawn_lwt<T>(
     gc: &ocaml::Runtime,
-    fut: impl Future<Output = T> + Send + 'static,
+    fut: impl Future<Output = T> + Send + UnwindSafe + 'static,
 ) -> crate::promise::Promise<T>
 where
     T: ocaml::ToValue + Send + 'static,
 {
     let (promise, resolver) = crate::promise::Promise::new(gc);
     let task = spawn_with_runtime(gc, async move {
-        let res = fut.await;
+        let res = fut.catch_unwind().await;
         let gc = &ocaml_runtime();
-        resolver.resolve(gc, &res);
+        match res {
+            Ok(v) => resolver.resolve(gc, &v),
+            Err(err) => {
+                let msg = if let Some(s) = err.downcast_ref::<&str>() {
+                    (*s).to_string()
+                } else if let Some(s) = err.downcast_ref::<String>() {
+                    s.clone()
+                } else {
+                    "unknown".to_string()
+                };
+                resolver.reject(gc, format!("spawn_lwt: rust task panicked: {}", msg));
+            }
+        }
     });
     task.detach();
     promise
